@@ -53,6 +53,29 @@ def patch_rows(img, x0, y0, x1, y1, dx, feather=4, detail=1.0):
 img = src.copy()
 patch_rows(img, 59, 40, 241, 68, 260)                          # logo Studio Wiga
 patch_rows(img, 1103, 16, 1356, 90, -258, feather=14, detail=0.8)   # logo OCTOPUS
+# footswitchs de la photo effacés : le plugin dessine ses propres footswitchs inox vus de dessus (fs_off.png).
+# Lumière (basses fréquences) reconstruite autour des trous, brossage (hautes fréquences) repris sur la même ligne
+# à côté du footswitch : aucune rupture de luminosité ni de grain.
+def erase_discs(img, centres, rad, y0, y1, shift):
+    hgt, wid = img.shape[:2]
+    yy_, xx_ = np.mgrid[0:hgt, 0:wid].astype(np.float64)
+    hole = np.zeros((hgt, wid))
+    for cx, cy in centres:
+        hole = np.maximum(hole, 1 - smooth(rad - 22, rad + 8, np.hypot(xx_ - cx, (yy_ - cy) * 0.92)))
+    keep = 1 - hole
+    bl = lambda a: cv2.GaussianBlur(a, (0, 0), sigmaX=45, sigmaY=3)          # lumière : surtout le long des lignes
+    low = bl(img * keep[..., None]) / np.maximum(bl(keep), 1e-3)[..., None]
+    detail = img - low
+    fill = np.zeros_like(img)
+    for cx, cy in centres:
+        dx = shift if cx + shift + rad + 10 < wid - 60 else -shift
+        xs = slice(int(cx - rad - 12), int(cx + rad + 12))
+        fill[y0:y1, xs] = detail[y0:y1, xs.start + dx:xs.stop + dx]
+    w = hole[..., None]
+    out = img.copy()
+    out[y0:y1] = (img * (1 - w) + (low + fill) * w)[y0:y1]
+    return out
+img = erase_discs(img, [(227.0, 884.0), (545.0, 884.0), (868.0, 883.0), (1187.0, 883.0)], 74.0, 790, 968, 150)
 for cx in (226.5, 543.0, 864.5, 1183.0):                      # lettres A-D gravées (le plugin les dessine, allumées ou non)
     patch_rows(img, int(cx - 15), 792, int(cx + 15), 822, 70)
 

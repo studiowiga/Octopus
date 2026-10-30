@@ -2,7 +2,7 @@
 #include <juce_graphics/juce_graphics.h>
 
 // Repère de la pédale OCTOPUS : 1267 x 981 unités (= pixels du visuel fourni, redressé puis recadré, tools/make_frame.py),
-// images en 2x. Le boîtier, la lunette et les footswitchs viennent de la photo ; le plugin y dessine l'écran,
+// images en 2x. Le boîtier et la lunette viennent de la photo ; le plugin y dessine l'écran, les footswitchs inox,
 // le logo OCTOPUS, les lettres A-D et les anneaux lumineux.
 namespace OctoLayout
 {
@@ -19,15 +19,16 @@ namespace OctoLayout
     const juce::Rectangle<float> glass { 71.0f, 108.5f, 1126.0f, 1126.0f * 624.0f / 1064.0f };
     constexpr float glassRadius = 14.0f;
 
-    // footswitchs de la photo (écrou), boutons qui s'enfoncent (centre et rayon du chapeau, un peu décalé par la perspective)
+    // footswitchs inox vus de dessus (sprite fs_off.png de make_art.py, écrou de 80 entre plats, un plat en haut),
+    // posés à la place de ceux de la photo (effacés par make_frame.py)
     constexpr float fsY = 879.0f;
     const float fsX[4] = { 204.5f, 485.5f, 770.5f, 1052.5f };
-    const float capX[4] = { 202.0f, 486.0f, 774.5f, 1059.5f };   // ajustés sur le bord de chaque chapeau
-    const float capY[4] = { 873.0f, 872.5f, 872.0f, 872.5f };
-    constexpr float capR = 30.5f;
-    constexpr bool drawFsSprite = false;                       // les footswitchs sont ceux de la photo
-    constexpr float fsSprite = 150.0f;                          // zone redessinée autour d'un footswitch
-    constexpr float fsRadius = 46.0f;                           // zone cliquable (cercle)
+    const float capX[4] = { 204.5f, 485.5f, 770.5f, 1052.5f };  // bouton qui s'enfonce (centré sur l'écrou)
+    const float capY[4] = { 879.0f, 879.0f, 879.0f, 879.0f };
+    constexpr float capR = 25.0f;
+    constexpr bool drawFsSprite = true;
+    constexpr float fsSprite = 150.0f;                          // côté du sprite footswitch (ombre comprise)
+    constexpr float fsRadius = 40.0f;                           // zone cliquable (cercle)
     // lettres A-D (à la place de celles gravées sur la photo) : centre et hauteur de police
     const float ledXs[4] = { 208.5f, 488.0f, 771.5f, 1053.0f };
     constexpr float ledY = 806.5f, ledDx = 0.0f, letterFont = 29.0f;
@@ -36,11 +37,11 @@ namespace OctoLayout
     // (comme sur le visuel), 62 de haut, centré à 53 ; dessin 1704 x 446 dans une image 1768 x 510
     constexpr float logoH = 62.0f, logoW = logoH * 1704.0f / 446.0f, logoRight = 1200.0f, logoCy = 53.0f;
     constexpr float logoPad = logoH * 32.0f / 446.0f;
-    // anneau lumineux autour du bouton qui s'enfonce (comme la Phase 90) : il suit le contour du bouton vu sur la photo
-    // (chapeau + flanc visible en perspective), relevé à la main sur chaque footswitch : ellipse centre / rayons
-    const float ringCx[4] = { 206.1f, 487.6f, 773.0f, 1056.5f };
-    const float ringCy[4] = { 878.0f, 877.2f, 876.7f, 876.7f };
-    const float ringRx[4] = { 35.3f, 36.0f, 36.0f, 35.6f };
-    const float ringRy[4] = { 38.0f, 37.8f, 37.2f, 37.8f };
-    constexpr float ringW = 2.8f;                               // largeur du trait lumineux
+    // anneau lumineux dans le footswitch, dans la gorge autour du bouton qui s'enfonce (comme la Phase 90),
+    // même rayon que le diffuseur gris du sprite (make_art.py : RING_R0, RING_R1 = 27.4, 29.5)
+    const float ringCx[4] = { 204.5f, 485.5f, 770.5f, 1052.5f };
+    const float ringCy[4] = { 879.0f, 879.0f, 879.0f, 879.0f };
+    const float ringRx[4] = { 28.45f, 28.45f, 28.45f, 28.45f };
+    const float ringRy[4] = { 28.45f, 28.45f, 28.45f, 28.45f };
+    constexpr float ringW = 2.1f;
 }

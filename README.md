@@ -106,3 +106,4 @@ v1.3.0 : boîtier repris du visuel fourni (photo, footswitchs compris), écran d
 v1.3.1 : photo du boîtier redressée (prise un peu en plongée) : côtés de la pédale parfaitement verticaux, aussi larges en haut qu'en bas.
 v1.3.2 : anneau lumineux calé sur le bord du chapeau de chaque footswitch (centre et rayon mesurés un par un sur la photo).
 v1.3.3 : anneau lumineux qui suit la forme de chaque bouton (chapeau + flanc vu en perspective, contour relevé sur chaque footswitch).
+v1.3.4 : retour aux footswitchs inox des versions précédentes (vus de dessus, anneau lumineux dans la gorge autour du bouton) ; footswitchs de la photo effacés du boîtier.
