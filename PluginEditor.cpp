@@ -530,7 +530,7 @@ private:
             // retour sous la rangée : au milieu de l'espace libre entre le nom des blocs et le haut des carrés de la rangée suivante
             const float nameBottom = kTileDy + kTile * 0.5f + 4.0f + 22.0f;
             const float nextTop = kRowPitch + kTileDy - kTile * 0.5f;
-            const float ry = rowTop ((k - 1) / kCols) + (nameBottom + nextTop) * 0.5f;
+            const float ry = rowTop ((k - 1) / kCols) + (nameBottom + nextTop) * 0.5f - 8.0f;   // un peu au-dessus du milieu
             path.lineTo (P (xR, a.y)); path.lineTo (P (xR, ry)); path.lineTo (P (xL, ry)); path.lineTo (P (xL, b.y)); path.lineTo (S (b));
         }
         const auto last = slotCentre (n - 1);
@@ -561,13 +561,16 @@ private:
         const bool on = f.enabled && ! f.offline;
         const bool hov = ! ghost && hoverSlot == slot;
         const float rad = S (11.0f);
+        // famille utilitaire (blanc) : carreau blanc plein et icône sombre quand il est allumé, pour trancher net avec un bloc éteint
+        const bool white = kind == FxCat::utility && on;
 
         // carreau
         g.setColour (kScrBg.withAlpha (alpha));
         g.fillRoundedRectangle (t, rad);
         if (on)
         {
-            g.setGradientFill (ColourGradient (col.withAlpha (0.42f * alpha), t.getX(), t.getY(), col.withAlpha (0.16f * alpha), t.getX(), t.getBottom(), false));
+            const float a0 = white ? 0.95f : 0.42f, a1 = white ? 0.74f : 0.16f;
+            g.setGradientFill (ColourGradient (col.withAlpha (a0 * alpha), t.getX(), t.getY(), col.withAlpha (a1 * alpha), t.getX(), t.getBottom(), false));
             g.fillRoundedRectangle (t, rad);
         }
         else
@@ -584,11 +587,11 @@ private:
         }
 
         // icône
-        FxCat::drawIcon (g, kind, t.reduced (S (13.0f)), (on ? col.brighter (0.35f) : kDim.withAlpha (0.55f)).withAlpha (alpha), S (2.6f));
+        FxCat::drawIcon (g, kind, t.reduced (S (13.0f)), (white ? Colour (0xff1a1d23) : on ? col.brighter (0.35f) : kDim.withAlpha (0.55f)).withAlpha (alpha), S (2.6f));
 
         // témoin ON (coin haut droit)
         const auto led = Rectangle<float> (S (8.0f), S (8.0f)).withCentre ({ t.getRight() - S (10.0f), t.getY() + S (10.0f) });
-        g.setColour (on ? col.brighter (0.6f).withAlpha (alpha) : kFaint.withAlpha (alpha));
+        g.setColour (white ? Colour (0xff1a1d23).withAlpha (alpha) : on ? col.brighter (0.6f).withAlpha (alpha) : kFaint.withAlpha (alpha));
         g.fillEllipse (led);
 
         // badges : parallèle, fenêtre ouverte, hors ligne
