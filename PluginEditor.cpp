@@ -341,7 +341,8 @@ private:
                 if (d < L::ledR * 0.9f) continue;
                 const float tight = 1.0f / std::pow (1.0f + (d / 8.0f) * (d / 8.0f), 1.5f);
                 const float wide = 0.20f * std::exp (-d / 36.0f);
-                const float illum = 1.35f * tight + wide;
+                const float win = jlimit (0.0f, 1.0f, (gr.getWidth() * 0.5f - 4.0f - d) / 22.0f);   // retombe à zéro avant le bord du calque
+                const float illum = (1.35f * tight + wide) * win * win;
                 const auto p = sd.getPixelColour (sx, sy);
                 const float lum = 0.25f + (p.getFloatRed() + p.getFloatGreen() + p.getFloatBlue()) / 3.0f;
                 const float halo = 0.10f * std::exp (-(d / 13.0f) * (d / 13.0f));

@@ -22,10 +22,11 @@ Hv = (L + np.array([0, 0, 1.0])); Hv /= np.linalg.norm(Hv)
 BOX = (46, 24, 1194, 904, 46)                   # boîtier x0 y0 x1 y1 rayon
 BEZEL = (74, 98, 1166, 750, 22)                 # lunette de l'écran (presque toute la façade, comme un Quad Cortex)
 GLASS = (88, 112, 1152, 736, 12)                # vitre (zone affichée par le plugin) : 1064 x 624
-FS_Y = 832.0
+FS_Y = 838.0
 FS_X = (218.0, 486.0, 754.0, 1022.0)            # alignés sur les 4 cases du bas de l'écran
-LED_DX, LED_Y = -92.0, 814.0                    # LED à gauche du footswitch, lettre dessous
-LETTER_Y = 852.0
+LED_DX, LED_Y = 0.0, 774.0                      # LED au-dessus du footswitch, face à un plat de l'écrou
+LETTER_DX, LETTER_Y = -82.0, 838.0              # lettre à gauche du footswitch
+FS_ROT = 30.0                                   # écrou tourné de 30° : un plat en haut, sous la LED
 FS_FLATS = 80.0                                 # largeur entre plats de l'écrou du footswitch
 JACK_Y = 424.0
 
@@ -115,10 +116,10 @@ logo = logo.resize((lw, lh), Image.LANCZOS)
 la = np.asarray(logo).astype(np.float64); la[..., 3] *= 0.94
 im.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(90 * AS), int(58 * AS) - lh // 2))     # centré à y = 58
 
-# lettres des footswitchs : sous la LED, à gauche du footswitch
+# lettres des footswitchs : à gauche du footswitch, centrées sur sa hauteur
 for i, x in enumerate(FS_X):
     tw = draw.textlength("ABCD"[i], font=f_letter)
-    draw.text(((x + LED_DX) * AS - tw / 2, (LETTER_Y - 15) * AS), "ABCD"[i], font=f_letter, fill=ink)
+    draw.text(((x + LETTER_DX) * AS - tw / 2, (LETTER_Y - 16) * AS), "ABCD"[i], font=f_letter, fill=ink)
 
 # IN / OUT centrés à la hauteur des jacks (OUT à gauche, IN à droite), écrits le long de la tranche
 for txt, xc, ang in (("OUT", 60.0, 90), ("IN", 1180.0, -90)):
@@ -146,13 +147,47 @@ EF_FLATS = 100.5
 FS_K = FS_FLATS / EF_FLATS
 FS_W = 150.0                                    # sprite carré (unités Octopus), ombre comprise
 
-def footswitch(led_on):
+def rotated_source():
+    """ Photo d'Echoflex avec l'écrou tourné de FS_ROT degrés (un plat en haut) sans fausser la lumière :
+        - le bouton et la bague moletée (ronds) restent ceux de la photo, avec leurs reflets d'origine ;
+        - seul l'hexagone est tourné, puis chaque face est rééclairée pour sa nouvelle orientation :
+          luminance d'une face = a + b cos(normale - lambda), modèle ajusté sur les 6 faces de la photo. """
     src = np.asarray(Image.open(os.path.join(ROOT, "design", "echoflex_footswitch_source.png")).convert("RGB")).astype(np.float64)
+    cx, cy = 150 + 2 * EF_CENTROID[0], 150 + 2 * EF_CENTROID[1]
+    rot = cv2.warpAffine(src, cv2.getRotationMatrix2D((cx, cy), FS_ROT, 1.0), (src.shape[1], src.shape[0]),
+                         flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT)
+    yy_, xx_ = np.mgrid[0:src.shape[0], 0:src.shape[1]].astype(np.float64)
+    r = np.hypot(xx_ - cx, yy_ - cy)
+    phi = np.degrees(np.arctan2(-(yy_ - cy), xx_ - cx))                     # angle (degrés, y vers le haut)
+    lum = src.mean(2)
+    # faces de la photo : sommet en haut -> normales à 0, 60, ..., 300 degrés ; mesure sur le plat (r 92..99)
+    ring = (r > 92) & (r < 99)
+    nrm = np.arange(6) * 60.0
+    meas = []
+    for k_ in range(6):
+        d = (phi - nrm[k_] + 180) % 360 - 180
+        meas.append(lum[ring & (np.abs(d) < 20)].mean())
+    A = np.column_stack([np.ones(6), np.cos(np.radians(nrm)), np.sin(np.radians(nrm))])
+    c0, c1, c2 = np.linalg.lstsq(A, np.array(meas), rcond=None)[0]
+    shade = lambda ang: c0 + c1 * np.cos(np.radians(ang)) + c2 * np.sin(np.radians(ang))
+    print("faces de la photo :", [round(v) for v in meas], " lumière vers", round(np.degrees(np.arctan2(c2, c1))), "degrés")
+    # pixel tourné : vient de l'angle phi - FS_ROT de la photo (face d'origine) ; nouvelle face : normales à 30, 90, ...
+    old_n = np.round((phi - FS_ROT) / 60.0) * 60.0
+    new_n = np.round((phi - 30.0) / 60.0) * 60.0 + 30.0
+    gain = np.clip(shade (new_n) / np.maximum(shade (old_n), 1.0), 0.6, 1.6)
+    rot = rot * gain[..., None]
+    w = np.clip((r - 90.0) / 4.0, 0, 1)[..., None]                          # bague moletée : photo d'origine
+    return src * (1 - w) + rot * w
+
+def footswitch(led_on):
+    src = rotated_source()
     n = round(FS_W * AS)
     sc = FS_K * AS / 2.0
     M = np.float32([[sc, 0, n / 2 - (150 + 2 * EF_CENTROID[0]) * sc], [0, sc, n / 2 - (150 + 2 * EF_CENTROID[1]) * sc]])
     rgb = cv2.warpAffine(src, M, (n, n), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT)
-    pts = np.array([[n / 2 + (x - EF_CENTROID[0]) * FS_K * AS * 0.992, n / 2 + (y - EF_CENTROID[1]) * FS_K * AS * 0.992] for x, y in EF_PTS])
+    t = np.radians(FS_ROT)                                                  # même rotation que la photo (sens trigonométrique à l'écran)
+    rpts = [((x - EF_CENTROID[0]) * np.cos(t) + (y - EF_CENTROID[1]) * np.sin(t), -(x - EF_CENTROID[0]) * np.sin(t) + (y - EF_CENTROID[1]) * np.cos(t)) for x, y in EF_PTS]
+    pts = np.array([[n / 2 + x * FS_K * AS * 0.992, n / 2 + y * FS_K * AS * 0.992] for x, y in rpts])
     m = np.zeros((n * 4, n * 4), np.uint8); cv2.fillPoly(m, [np.round(pts * 4).astype(np.int32)], 255)
     a = cv2.resize(m, (n, n), interpolation=cv2.INTER_AREA).astype(np.float64) / 255.0
     a = cv2.GaussianBlur(a, (0, 0), 0.6)

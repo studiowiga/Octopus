@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 TMP = os.path.join(os.path.dirname(os.path.abspath(OUT)), "manual_tmp")
 os.makedirs(TMP, exist_ok=True)
 
@@ -29,7 +29,7 @@ ACC = colors.HexColor("#1E9BD0"); DARK = colors.HexColor("#1A1C22"); GREY = colo
 src = Image.open(os.path.join(SHOTS, "octopus_100pc.png")).convert("RGB")
 k = src.height / 928.0
 marks = [(1, 166, 104), (2, 330, 104), (3, 695, 104), (4, 882, 104), (5, 1018, 104), (6, 1101, 104),
-         (7, 192, 196), (8, 612, 352), (9, 1124, 390), (10, 218, 670), (11, 486, 832), (12, 394, 790), (13, 1212, 470), (14, 28, 470)]
+         (7, 192, 196), (8, 612, 352), (9, 1124, 390), (10, 218, 670), (11, 486, 832), (12, 470, 760), (13, 1212, 470), (14, 28, 470)]
 ann = src.copy(); dr = ImageDraw.Draw(ann)
 fnt = ImageFont.truetype(os.path.join(ROOT, "fonts", "Poppins-Bold.ttf"), 26)
 for n, x, y in marks:

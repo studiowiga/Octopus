@@ -61,3 +61,4 @@ ombres selon la lumière en haut à gauche). Positions communes : `Layout.h`.
 - `tools/host_check` : charge le VST3 compilé comme un hôte (paramètres, son inchangé, état, fenêtre).
 
 v1.0.0 : première version.
+v1.0.1 : footswitchs tournés de 30° (un plat de l'écrou en haut), LED au-dessus de chaque footswitch, lettre à gauche ; éclairage des LED qui retombe à zéro avant le bord du calque.
