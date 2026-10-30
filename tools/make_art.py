@@ -105,8 +105,13 @@ def spaced(text, font, x_right, y_top, track, fill):
         x += w_ + track
     return total
 
-spaced("OCTOPUS", f_word, 1172 * AS, 18 * AS, 6 * AS, ink)
-spaced("FX CHAIN CONTROLLER", f_small, 1172 * AS, 61 * AS, 3.0 * AS, ink_dim)
+# logo OCTOPUS (pieuvre + « fx chain controller ») : en symétrie du logo Studio Wiga (même marge au bord, 66),
+# centré en hauteur dans la bande entre le haut du boîtier (12) et la lunette (90), avec 15 de marge en haut et en bas
+olog = Image.open(os.path.join(ROOT, "design", "logo_octopus_blanc.png")).convert("RGBA")
+ohh = int(48 * AS); oww = round(olog.width * ohh / olog.height)
+olog = olog.resize((oww, ohh), Image.LANCZOS)
+oa = np.asarray(olog).astype(np.float64); oa[..., 3] *= 0.94
+im.alpha_composite(Image.fromarray(oa.astype(np.uint8), "RGBA"), ((W_U - 66) * AS - oww, int(51 * AS) - ohh // 2))
 
 logo = Image.open(os.path.join(ROOT, "design", "logo_studio_wiga_blanc.png")).convert("RGBA")
 lw = int(140 * AS); lh = round(logo.height * lw / logo.width)
