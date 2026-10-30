@@ -361,8 +361,24 @@ bool OctopusEngine::load (int idx)
 {
     idx = juce::jlimit (0, kPresets - 1, idx);
     const auto& p = presets[(size_t) idx];
-    if (! p.saved) { say (label (idx) + " is empty : right-click its footswitch or use SAVE"); return false; }
     if (! ready) { say (status); return false; }
+    if (! p.saved)
+    {
+        // preset vide : écran vide comme au démarrage (tous les effets retirés, sauf Octopus), prêt à être construit puis enregistré
+        host.beginUndo();
+        for (int i = host.count(); --i >= 0;)
+            if (! host.info (i).isSelf) host.remove (i);
+        host.endUndo ("empty preset " + label (idx));
+        refreshNow();
+        for (auto& g : stompGuids) g.clear();
+        cur = idx;
+        viewBank = idx / kSlots;
+        sigLoaded = signature();
+        sigPending = true;
+        say (label (idx) + "  empty preset : add effects, then SAVE");
+        changed();
+        return true;
+    }
 
     juce::StringArray now; int nowSelf = 0; juce::String err;
     if (! host.capture (now, nowSelf, err)) { say ("Load failed : " + err, 4000.0); return false; }

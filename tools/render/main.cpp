@@ -243,6 +243,16 @@ int main (int argc, char** argv)
         e.remove (e.blocks()[0]);
     }
 
+    // preset vide : écran vide comme au démarrage ; couleur du footswitch sur l'étiquette du preset
+    {
+        check (! e.preset (5).saved, "2B est vide");
+        check (e.load (5) && e.blocks().isEmpty() && e.current() == 5, "preset vide chargé : chaîne vide (" + String (e.blocks().size()) + " blocs)");
+        shot ("octopus_empty_preset");
+        e.load (2);
+        check (e.blocks().size() > 5 && e.current() == 2, "retour au preset 1C");
+        shot ("octopus_badge_colour");
+    }
+
     // longue chaîne : défilement
     for (int i = 0; i < 9; ++i) e.addFx ({ "VST3: ReaEQ (Cockos)", "" }, 99);
     shot ("octopus_long_chain");

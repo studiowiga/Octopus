@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.2.4"
+VERSION = "1.2.5"
 TMP = os.path.join(os.path.dirname(os.path.abspath(OUT)), "manual_tmp")
 os.makedirs(TMP, exist_ok=True)
 
@@ -139,8 +139,8 @@ T = {
        ("REAPER", "Options &gt; Preferences &gt; Plug-ins &gt; VST &gt; <b>Re-scan</b>. Octopus appears as <b>VST3: Octopus (Studio Wiga)</b>. Insert it on the track you want to control, ideally in first position. REAPER 6.37 or newer is needed; the list of installed plug-ins used by the ADD screen needs REAPER 7.")],
  ov_t="3. Overview",
  ov_rows=[["#", "Element", "Role"],
-   ["1", "Preset", "Preset currently loaded (1A ... 16D), or -- for a live chain."],
-   ["2", "Name / status line", "Preset name (EDITED when the chain no longer matches it); below: the track name, or the last action and messages."],
+   ["1", "Preset", "Preset currently loaded (1A ... 16D), in the colour of its footswitch, or -- for a live chain."],
+   ["2", "Name / status line", "Preset name (click it to rename the preset; EDITED when the chain no longer matches it); below: the track name, or the last action and messages."],
    ["3", "BANK", "Bank shown by the footswitches (arrows: previous / next bank)."],
    ["4", "PRESET / STOMP", "Mode of the footswitches."],
    ["5", "BANKS", "Opens the banks panel (load, save, rename, copy, export, footswitch colours...)."],
@@ -169,6 +169,8 @@ T = {
  pre=["A preset is a <b>complete FX chain</b>: plug-ins, order, every setting, ON / OFF states, parallel processing and the STOMP assignments of the footswitches. It is stored in REAPER's own format, so every plug-in (VST, VST3, CLAP, JS, AU) comes back exactly as saved. Octopus keeps 64 presets (16 banks x 4: 1A to 16D) <b>inside the REAPER project</b>.",
       "<b>SAVE</b>: saves the loaded preset, or <i>Save as...</i> a slot chosen by bank. An existing preset is never replaced without confirmation. You can also right-click a footswitch &gt; <i>Save the current chain in ...</i>.",
       "<b>Recall</b>: footswitch (PRESET mode), click on a footswitch cell, LOAD in the banks panel, double-click a preset card, or MIDI Program Change. <b>Fast switching</b>: when the preset uses the same plug-ins in the same order as the current chain, Octopus only reloads the blocks whose settings differ and simply switches the others ON / OFF: changing between presets of one rig is almost instant. Otherwise the whole chain is replaced (Octopus itself is never touched). A plug-in that is no longer installed is reported on the status line; the other effects are loaded in their right place.",
+      "<b>Empty preset</b>: recalling a preset that has never been saved (footswitch, footswitch cell, LOAD...) gives an <b>empty screen as at start-up</b>: every effect of the chain is removed (Octopus stays), the preset label shows that slot and you can build a new chain, then SAVE it there. REAPER's undo brings the previous chain back.",
+      "<b>Rename</b>: click the preset name at the top of the screen, type the new name, Enter (Escape cancels). RENAME in the BANKS panel does the same for any preset.",
       "<b>EDITED</b> appears next to the preset name when the chain has changed since it was loaded or saved; pressing the footswitch of that preset again restores it.",
       "<b>BANKS panel</b>: the 16 banks on the left (dots = saved presets), the 4 presets of the selected bank on the right with <b>LOAD, SAVE, RENAME, COPY, PASTE, CLEAR</b>. <b>EXPORT...</b> writes all banks to an <b>.octobank</b> file, <b>IMPORT...</b> replaces the 64 presets with a file (to share banks between projects). <b>PROGRAM CHANGE = PRESETS</b> switches MIDI Program Change on or off. <b>FOOTSWITCH COLOURS</b>: COLOUR A to COLOUR D choose the colour of each footswitch in PRESET mode (letter and screen cell): blue, cyan, green, lime, yellow, amber, orange, red, pink, purple or white. The colours are saved with the project."],
  scr_cap_banks="BANKS panel.",
@@ -238,8 +240,8 @@ T = {
        ("REAPER", "Options &gt; Preferences &gt; Plug-ins &gt; VST &gt; <b>Re-scan</b>. Octopus apparaît sous le nom <b>VST3: Octopus (Studio Wiga)</b>. Insérez-le sur la piste à piloter, de préférence en première position. Il faut REAPER 6.37 ou plus récent ; la liste des plugins installés utilisée par l'écran d'ajout demande REAPER 7.")],
  ov_t="3. Vue d'ensemble",
  ov_rows=[["#", "Élément", "Rôle"],
-   ["1", "Preset", "Preset chargé (1A ... 16D), ou -- pour une chaîne libre."],
-   ["2", "Nom / ligne d'état", "Nom du preset (EDITED quand la chaîne ne lui correspond plus) ; dessous : le nom de la piste, ou la dernière action et les messages."],
+   ["1", "Preset", "Preset chargé (1A ... 16D), dans la couleur de son footswitch, ou -- pour une chaîne libre."],
+   ["2", "Nom / ligne d'état", "Nom du preset (cliquez dessus pour le renommer ; EDITED quand la chaîne ne lui correspond plus) ; dessous : le nom de la piste, ou la dernière action et les messages."],
    ["3", "BANK", "Bank affichée sur les footswitchs (flèches : bank précédente / suivante)."],
    ["4", "PRESET / STOMP", "Mode des footswitchs."],
    ["5", "BANKS", "Ouvre le panneau des banks (charger, enregistrer, renommer, copier, exporter, couleurs des footswitchs...)."],
@@ -268,6 +270,8 @@ T = {
  pre=["Un preset est une <b>chaîne d'effets complète</b> : plugins, ordre, tous les réglages, états ON / OFF, traitement parallèle et assignations STOMP des footswitchs. Il est gardé au format de REAPER lui-même : chaque plugin (VST, VST3, CLAP, JS, AU) revient exactement comme il a été enregistré. Octopus garde 64 presets (16 banks x 4 : 1A à 16D) <b>dans le projet REAPER</b>.",
       "<b>SAVE</b> : enregistre le preset chargé, ou <i>Save as...</i> dans un emplacement choisi par bank. Un preset existant n'est jamais remplacé sans confirmation. Vous pouvez aussi faire un clic droit sur un footswitch &gt; <i>Save the current chain in ...</i>.",
       "<b>Rappel</b> : footswitch (mode PRESET), clic sur une case de footswitch, LOAD dans le panneau des banks, double-clic sur une carte de preset, ou Program Change MIDI. <b>Changement rapide</b> : si le preset utilise les mêmes plugins dans le même ordre que la chaîne actuelle, Octopus ne recharge que les blocs dont les réglages diffèrent et se contente d'allumer ou couper les autres : passer d'un preset à l'autre d'un même rig est quasi instantané. Sinon toute la chaîne est remplacée (Octopus lui-même n'est jamais touché). Un plugin qui n'est plus installé est signalé sur la ligne d'état ; les autres effets sont chargés à leur place.",
+      "<b>Preset vide</b> : rappeler un preset jamais enregistré (footswitch, case de footswitch, LOAD...) donne un <b>écran vide comme au démarrage</b> : tous les effets de la chaîne sont retirés (Octopus reste), l'étiquette affiche cet emplacement et vous pouvez construire une nouvelle chaîne puis l'y enregistrer avec SAVE. L'annulation de REAPER ramène la chaîne précédente.",
+      "<b>Renommer</b> : cliquez sur le nom du preset en haut de l'écran, tapez le nouveau nom, Entrée (Échap annule). RENAME dans le panneau BANKS fait la même chose pour n'importe quel preset.",
       "<b>EDITED</b> s'affiche à côté du nom quand la chaîne a changé depuis le chargement ou l'enregistrement du preset ; appuyer de nouveau sur le footswitch de ce preset le rétablit.",
       "<b>Panneau BANKS</b> : les 16 banks à gauche (points = presets enregistrés), les 4 presets de la bank choisie à droite avec <b>LOAD, SAVE, RENAME, COPY, PASTE, CLEAR</b>. <b>EXPORT...</b> écrit toutes les banks dans un fichier <b>.octobank</b>, <b>IMPORT...</b> remplace les 64 presets par ceux d'un fichier (pour partager des banks entre projets). <b>PROGRAM CHANGE = PRESETS</b> active ou coupe les Program Change MIDI. <b>FOOTSWITCH COLOURS</b> : COLOUR A à COLOUR D choisissent la couleur de chaque footswitch en mode PRESET (lettre et case de l'écran) : bleu, cyan, vert, vert clair, jaune, ambre, orange, rouge, rose, violet ou blanc. Les couleurs sont enregistrées avec le projet."],
  scr_cap_banks="Panneau BANKS.",

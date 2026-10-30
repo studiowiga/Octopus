@@ -99,3 +99,4 @@ v1.2.1 : logo OCTOPUS dessiné par le plugin à la taille exacte (net à toutes 
 v1.2.2 : logo OCTOPUS avec une marge transparente autour du dessin (plus rien de rogné en bas à la mise à l'échelle), redessiné à la bonne taille pendant un redimensionnement.
 v1.2.3 : anneau lumineux placé dans le footswitch, autour du bouton qui s'enfonce (diffuseur gris éteint) ; écrou à sa taille d'origine.
 v1.2.4 : lettres A-D abaissées, à égale distance de l'écran et des footswitchs.
+v1.2.5 : étiquette du preset (1A...) dans la couleur de son footswitch ; clic sur le nom du preset en haut pour le renommer ; preset vide = écran vide comme au démarrage (chaîne vidée, un point d'annulation).

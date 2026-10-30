@@ -132,6 +132,12 @@ public:
         renameEd.onFocusLost = [this] { commitRename(); };
         addChildComponent (renameEd);
 
+        styleEditor (headerNameEd, "Preset name");
+        headerNameEd.onReturnKey = [this] { commitHeaderName(); };
+        headerNameEd.onEscapeKey = [this] { headerRenaming = false; headerNameEd.setVisible (false); askRepaint (screenPx()); };
+        headerNameEd.onFocusLost = [this] { commitHeaderName(); };
+        addChildComponent (headerNameEd);
+
         styleEditor (presetNameEd, "User preset name");
         presetNameEd.onReturnKey = [this] { commitPresetName(); };
         presetNameEd.onEscapeKey = [this] { cancelPresetName(); };
@@ -282,7 +288,8 @@ private:
     int pendingToggle = -1;                        // indice REAPER, basculé après le délai du double-clic
     double pendingToggleAt = 0.0;
     // navigateur
-    TextEditor search, renameEd, presetNameEd;
+    TextEditor search, renameEd, presetNameEd, headerNameEd;
+    bool headerRenaming = false;           // nom du preset chargé en cours de saisie (clic sur le nom en haut)
     int chip = 0, listScroll = 0, insertPos = 0;
     // paramètres
     String paramGuid;
@@ -372,6 +379,9 @@ private:
             renameEd.setFont (font (tfMedium, 18.0f));
             renameEd.setIndents (roundToInt (S (8.0f)), jmax (0, roundToInt ((S (36.0f) - h) * 0.5f) - 1));
         }
+        headerNameEd.setBounds (S (headerNameRect()).toNearestInt());
+        headerNameEd.setFont (font (tfMedium, 24.0f));
+        headerNameEd.setIndents (roundToInt (S (6.0f)), jmax (0, roundToInt ((S (36.0f) - 24.0f * s) * 0.5f) - 1));
         presetNameEd.setBounds (S (Rectangle<float> (104.0f, 132.0f, 540.0f, 36.0f)).toNearestInt());
         presetNameEd.setFont (font (tfMedium, 18.0f));
         presetNameEd.setIndents (roundToInt (S (8.0f)), jmax (0, roundToInt ((S (36.0f) - h) * 0.5f) - 1));
@@ -384,6 +394,31 @@ private:
         renameEd.setVisible (false);
         presetEdIndex = -2;
         presetNameEd.setVisible (false);
+        headerRenaming = false;
+        headerNameEd.setVisible (false);
+    }
+
+    // ---- nom du preset chargé : clic sur le nom en haut de l'écran pour le changer
+    static Rectangle<float> headerNameRect() { return { 132.0f, 8.0f, 376.0f, 36.0f }; }
+    void startHeaderRename()
+    {
+        const int cur = eng.current();
+        if (cur < 0) { eng.say ("Load a preset (or SAVE the chain) to name it"); return; }
+        headerRenaming = true;
+        layoutEditors();
+        headerNameEd.setText (eng.preset (cur).name, dontSendNotification);
+        headerNameEd.setVisible (true);
+        headerNameEd.grabKeyboardFocus();
+        headerNameEd.selectAll();
+        askRepaint (screenPx());
+    }
+    void commitHeaderName()
+    {
+        if (! headerRenaming) return;
+        headerRenaming = false;
+        headerNameEd.setVisible (false);
+        if (eng.current() >= 0) eng.rename (eng.current(), headerNameEd.getText());
+        askRepaint (screenPx());
     }
 
     // ------------------------------------------------------------ caches (timer seulement)
@@ -920,18 +955,20 @@ private:
         // preset chargé
         const int cur = eng.current();
         const auto badge = S (Rectangle<float> (14.0f, 13.0f, 104.0f, 48.0f));
-        g.setColour (cur >= 0 ? kText : kScrPanel2);
+        // même couleur que le footswitch de ce preset (choisie dans BANKS > FOOTSWITCH COLOURS)
+        const auto badgeCol = cur >= 0 ? Colour (eng.fsColour (cur % OctopusEngine::kSlots)) : kScrPanel2;
+        g.setColour (badgeCol);
         g.fillRoundedRectangle (badge, S (8.0f));
         g.setFont (font (tfBold, 32.0f));
-        g.setColour (cur >= 0 ? kScrBg : kDim);
+        g.setColour (cur < 0 ? kDim : badgeCol.getPerceivedBrightness() > 0.55f ? kScrBg : Colours::white);
         g.drawText (cur >= 0 ? OctopusEngine::label (cur) : String ("--"), badge.translated (0.0f, S (1.5f)), Justification::centred);
 
         const String name = cur >= 0 ? eng.displayName (cur) : String (eng.isReady() ? "Live chain" : "OCTOPUS");
-        const auto nameR = S (Rectangle<float> (132.0f, 8.0f, 376.0f, 36.0f));
+        const auto nameR = S (headerNameRect());
         g.setFont (font (tfMedium, 26.0f));
         g.setColour (kText);
-        g.drawText (name, nameR, Justification::centredLeft, true);
-        if (eng.modified())
+        if (! headerRenaming) g.drawText (name, nameR, Justification::centredLeft, true);
+        if (eng.modified() && ! headerRenaming)
         {
             const float tw = jmin (nameR.getWidth() - S (60.0f), GlyphArrangement::getStringWidth (font (tfMedium, 26.0f), name));
             g.setFont (font (tfBold, 14.0f));
@@ -2041,6 +2078,7 @@ private:
             }
             return;
         }
+        if (headerNameRect().contains (p) && ! e.mods.isPopupMenu() && eng.isReady()) { startHeaderRename(); return; }
 
         if (overlay == Overlay::browser)
         {
