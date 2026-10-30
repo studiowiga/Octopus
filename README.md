@@ -2,7 +2,7 @@
 
 Plugin VST3 (Windows / macOS) **pour REAPER** : un écran façon multi-effet (inspiré du Quad Cortex mini) qui pilote
 la chaîne d'effets de la piste où il est inséré. Format **pédale double** (fenêtre de Ring Think : 661 x 495 par défaut et
-au minimum, puis 75 % et 100 %), écran sur presque toute la façade, 4 footswitchs (celui d'Echoflex) avec LED.
+au minimum, puis 75 % et 100 %), écran sur presque toute la façade, 4 footswitchs (celui d'Echoflex) surmontés de leur lettre A-D rétroéclairée.
 
 ## Ce que fait Octopus
 - **L'écran montre la chaîne de la piste** (tous les effets sauf Octopus), en blocs colorés par famille
@@ -19,9 +19,9 @@ au minimum, puis 75 % et 100 %), écran sur presque toute la façade, 4 footswit
 - **Rappel sans coupure inutile** : si le preset a la même suite de plugins que la chaîne actuelle, seuls les blocs dont les
   réglages diffèrent sont rechargés, les autres ne font que passer ON / OFF (changement quasi instantané). Sinon la chaîne est
   remplacée. Octopus n'est jamais recréé ni déplacé. Un plugin désinstallé est signalé, les autres sont placés correctement.
-- **Footswitchs A-D** : mode **PRESET** (rappellent les presets A-D de la bank affichée, LED bleue) ou **STOMP**
-  (chacun bascule un ou plusieurs blocs, LED de la couleur du bloc). Fonctionnement d'Echoflex (action à l'appui, bouton
-  assombri, LED en fondu, façade éclairée par la LED).
+- **Footswitchs A-D** : mode **PRESET** (rappellent les presets A-D de la bank affichée, lettre bleue) ou **STOMP**
+  (chacun bascule un ou plusieurs blocs, lettre de la couleur du bloc). Fonctionnement d'Echoflex (action à l'appui, bouton
+  assombri), lettre allumée en fondu qui éclaire la façade.
 - **MIDI** (M-Vave Chocolate Plus) : MIDI learn au clic droit (footswitchs A-D, bank -, bank +, mode), momentané ou à
   accrochage (127 / 0), **Program Change 1-64 = presets 1A-16D**. Les paramètres `fsA`..`fsD`, `bankDown`, `bankUp`, `mode`
   acceptent aussi le MIDI learn de REAPER. Le MIDI continue vers les effets suivants.
@@ -62,3 +62,4 @@ ombres selon la lumière en haut à gauche). Positions communes : `Layout.h`.
 
 v1.0.0 : première version.
 v1.0.1 : footswitchs tournés de 30° (un plat de l'écrou en haut), LED au-dessus de chaque footswitch, lettre à gauche ; éclairage des LED qui retombe à zéro avant le bord du calque.
+v1.0.2 : les LED sont remplacées par les lettres A, B, C, D rétroéclairées au-dessus des footswitchs (gravées quand elles sont éteintes, lumineuses dans la couleur du mode quand elles sont allumées).

@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 TMP = os.path.join(os.path.dirname(os.path.abspath(OUT)), "manual_tmp")
 os.makedirs(TMP, exist_ok=True)
 
@@ -29,7 +29,7 @@ ACC = colors.HexColor("#1E9BD0"); DARK = colors.HexColor("#1A1C22"); GREY = colo
 src = Image.open(os.path.join(SHOTS, "octopus_100pc.png")).convert("RGB")
 k = src.height / 928.0
 marks = [(1, 166, 104), (2, 330, 104), (3, 695, 104), (4, 882, 104), (5, 1018, 104), (6, 1101, 104),
-         (7, 192, 196), (8, 612, 352), (9, 1124, 390), (10, 218, 670), (11, 486, 832), (12, 470, 760), (13, 1212, 470), (14, 28, 470)]
+         (7, 192, 196), (8, 612, 352), (9, 1124, 390), (10, 218, 670), (11, 486, 832), (12, 440, 752), (13, 1212, 470), (14, 28, 470)]
 ann = src.copy(); dr = ImageDraw.Draw(ann)
 fnt = ImageFont.truetype(os.path.join(ROOT, "fonts", "Poppins-Bold.ttf"), 26)
 for n, x, y in marks:
@@ -126,7 +126,7 @@ T = {
    ["9", "IN / OUT", "Signal flow of the track, from left to right, row after row."],
    ["10", "Footswitch cells", "What each footswitch does in the current mode; a click works like the footswitch."],
    ["11", "Footswitches A-D", "Recall presets A-D of the bank shown (PRESET) or switch their blocks (STOMP)."],
-   ["12", "LED", "Lit for the loaded preset (blue) or for blocks that are ON (colour of the block)."],
+   ["12", "Letter A-D", "Backlit letter of the footswitch: lit for the loaded preset (blue) or for blocks that are ON (colour of the block)."],
    ["13", "IN", "Input jack (right side)."], ["14", "OUT", "Output jack (left side)."]],
  ctl_t="4. The screen in detail",
  ctl=[("Blocks", "Each effect of the track is a block whose colour and icon show its family, guessed from the plug-in name: tuner, amp, cab / IR, drive, dynamics, EQ, wah / filter, delay, reverb, modulation, pitch, special, utility. A lit block with a coloured corner dot is ON; a grey block is bypassed. Small marks show a plug-in window that is open (square, top left), processing in parallel with the previous effect (||) and an offline plug-in (red line). Octopus itself is not shown. Seven blocks per row, four rows; with more effects, scroll with the mouse wheel (the row count appears bottom right)."),
@@ -142,12 +142,12 @@ T = {
       "<b>EDITED</b> appears next to the preset name when the chain has changed since it was loaded or saved; pressing the footswitch of that preset again restores it.",
       "<b>BANKS panel</b>: the 16 banks on the left (dots = saved presets), the 4 presets of the selected bank on the right with <b>LOAD, SAVE, RENAME, COPY, PASTE, CLEAR</b>. <b>EXPORT...</b> writes all banks to an <b>.octobank</b> file, <b>IMPORT...</b> replaces the 64 presets with a file (to share banks between projects). <b>PROGRAM CHANGE = PRESETS</b> switches MIDI Program Change on or off."],
  scr_cap_banks="BANKS panel.",
- fs_t="6. Footswitches, LED and modes",
- fs=["<b>PRESET mode</b>: footswitches A, B, C, D recall presets A-D of the bank shown in the header (arrows or MIDI Bank down / up change the bank shown; the bank is loaded when you press a footswitch). The LED of the loaded preset is lit in blue.",
-     "<b>STOMP mode</b>: each footswitch switches one or several blocks (right-click a block &gt; Assign to footswitch, or right-click a footswitch &gt; STOMP : blocks switched by...). If one of its blocks is ON, a press switches them all OFF; otherwise all ON. The footswitch cell shows the family and names of its blocks, the LED takes the colour of the first block and is lit when one of them is ON. Assignments are saved with the presets.",
-     "Like on Echoflex, a footswitch acts as soon as it is pressed, its button darkens while it is held and the LED fades in and out, lighting the panel around it.",
+ fs_t="6. Footswitches, letters and modes",
+ fs=["<b>PRESET mode</b>: footswitches A, B, C, D recall presets A-D of the bank shown in the header (arrows or MIDI Bank down / up change the bank shown; the bank is loaded when you press a footswitch). The letter of the loaded preset lights up in blue.",
+     "<b>STOMP mode</b>: each footswitch switches one or several blocks (right-click a block &gt; Assign to footswitch, or right-click a footswitch &gt; STOMP : blocks switched by...). If one of its blocks is ON, a press switches them all OFF; otherwise all ON. The footswitch cell shows the family and names of its blocks, its letter takes the colour of the first block and lights up when one of them is ON. Assignments are saved with the presets.",
+     "Like on Echoflex, a footswitch acts as soon as it is pressed, its button darkens while it is held. Above it, the letter A, B, C or D is backlit: engraved and dark when off, it fades in and out in colour and lights the panel around it.",
      "Right-click a footswitch: save / load the preset of that footswitch, STOMP assignments, MIDI learn of the footswitch, latching mode, MIDI menu and plug-in size."],
- stomp_cap="STOMP mode: footswitch A switches NGATE + Crycat; the LEDs take the colour of their blocks.",
+ stomp_cap="STOMP mode: footswitch A switches NGATE + Crycat; the letters take the colour of their blocks.",
  midi_t="7. MIDI",
  midi=["Octopus listens to the MIDI of its track (in REAPER: MIDI input on the track, record arm or monitoring on). The MIDI then continues to the following effects (for example your expression pedal for Crycat or Wharry)."],
  midi_hdr=["Command", "Default", "How"],
@@ -197,7 +197,7 @@ T = {
    ["9", "IN / OUT", "Trajet du signal de la piste, de gauche à droite, rangée après rangée."],
    ["10", "Cases des footswitchs", "Ce que fait chaque footswitch dans le mode actuel ; un clic agit comme le footswitch."],
    ["11", "Footswitchs A-D", "Rappellent les presets A-D de la bank affichée (PRESET) ou basculent leurs blocs (STOMP)."],
-   ["12", "LED", "Allumée pour le preset chargé (bleu) ou pour les blocs allumés (couleur du bloc)."],
+   ["12", "Lettre A-D", "Lettre rétroéclairée du footswitch : allumée pour le preset chargé (bleu) ou pour les blocs allumés (couleur du bloc)."],
    ["13", "IN", "Jack d'entrée (côté droit)."], ["14", "OUT", "Jack de sortie (côté gauche)."]],
  ctl_t="4. L'écran en détail",
  ctl=[("Blocs", "Chaque effet de la piste est un bloc dont la couleur et l'icône indiquent la famille, devinée d'après le nom du plugin : accordeur, ampli, baffle / IR, drive, dynamique, EQ, wah / filtre, delay, reverb, modulation, pitch, spécial, utilitaire. Un bloc coloré avec son point allumé est ON ; un bloc gris est contourné. De petits repères signalent une fenêtre de plugin ouverte (carré en haut à gauche), un traitement en parallèle avec l'effet précédent (||) et un plugin hors ligne (trait rouge). Octopus lui-même n'est pas affiché. Sept blocs par rangée, quatre rangées ; au-delà, faites défiler avec la molette (le nombre de rangées s'affiche en bas à droite)."),
@@ -213,12 +213,12 @@ T = {
       "<b>EDITED</b> s'affiche à côté du nom quand la chaîne a changé depuis le chargement ou l'enregistrement du preset ; appuyer de nouveau sur le footswitch de ce preset le rétablit.",
       "<b>Panneau BANKS</b> : les 16 banks à gauche (points = presets enregistrés), les 4 presets de la bank choisie à droite avec <b>LOAD, SAVE, RENAME, COPY, PASTE, CLEAR</b>. <b>EXPORT...</b> écrit toutes les banks dans un fichier <b>.octobank</b>, <b>IMPORT...</b> remplace les 64 presets par ceux d'un fichier (pour partager des banks entre projets). <b>PROGRAM CHANGE = PRESETS</b> active ou coupe les Program Change MIDI."],
  scr_cap_banks="Panneau BANKS.",
- fs_t="6. Footswitchs, LED et modes",
- fs=["<b>Mode PRESET</b> : les footswitchs A, B, C, D rappellent les presets A-D de la bank affichée en haut de l'écran (les flèches ou les commandes MIDI Bank down / up changent la bank affichée ; elle est chargée quand vous appuyez sur un footswitch). La LED du preset chargé s'allume en bleu.",
-     "<b>Mode STOMP</b> : chaque footswitch bascule un ou plusieurs blocs (clic droit sur un bloc &gt; Assign to footswitch, ou clic droit sur un footswitch &gt; STOMP : blocks switched by...). Si l'un de ses blocs est ON, un appui les coupe tous ; sinon il les allume tous. La case du footswitch affiche la famille et les noms de ses blocs, la LED prend la couleur du premier bloc et s'allume quand l'un d'eux est ON. Les assignations sont enregistrées avec les presets.",
-     "Comme sur Echoflex, un footswitch agit dès l'appui, son bouton s'assombrit tant qu'on appuie et la LED s'allume et s'éteint en fondu en éclairant la façade autour d'elle.",
+ fs_t="6. Footswitchs, lettres et modes",
+ fs=["<b>Mode PRESET</b> : les footswitchs A, B, C, D rappellent les presets A-D de la bank affichée en haut de l'écran (les flèches ou les commandes MIDI Bank down / up changent la bank affichée ; elle est chargée quand vous appuyez sur un footswitch). La lettre du preset chargé s'allume en bleu.",
+     "<b>Mode STOMP</b> : chaque footswitch bascule un ou plusieurs blocs (clic droit sur un bloc &gt; Assign to footswitch, ou clic droit sur un footswitch &gt; STOMP : blocks switched by...). Si l'un de ses blocs est ON, un appui les coupe tous ; sinon il les allume tous. La case du footswitch affiche la famille et les noms de ses blocs, sa lettre prend la couleur du premier bloc et s'allume quand l'un d'eux est ON. Les assignations sont enregistrées avec les presets.",
+     "Comme sur Echoflex, un footswitch agit dès l'appui, son bouton s'assombrit tant qu'on appuie. Au-dessus, la lettre A, B, C ou D est rétroéclairée : gravée et sombre quand elle est éteinte, elle s'allume et s'éteint en fondu, en couleur, et éclaire la façade autour d'elle.",
      "Clic droit sur un footswitch : enregistrer / charger le preset de ce footswitch, assignations STOMP, MIDI learn du footswitch, mode à accrochage, menu MIDI et taille du plugin."],
- stomp_cap="Mode STOMP : le footswitch A bascule NGATE + Crycat ; les LED prennent la couleur de leurs blocs.",
+ stomp_cap="Mode STOMP : le footswitch A bascule NGATE + Crycat ; les lettres prennent la couleur de leurs blocs.",
  midi_t="7. MIDI",
  midi=["Octopus écoute le MIDI de sa piste (dans REAPER : entrée MIDI sur la piste, armement ou monitoring actif). Le MIDI continue ensuite vers les effets suivants (par exemple votre pédale d'expression pour Crycat ou Wharry)."],
  midi_hdr=["Commande", "Par défaut", "Comment"],

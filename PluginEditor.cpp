@@ -191,7 +191,7 @@ public:
                 g.setColour (Colours::black.withAlpha (0.25f));
                 g.fillEllipse (c.x - pr, c.y - pr, pr * 2.0f, pr * 2.0f);
             }
-            drawLed (g, ledPos (f), ledLevel[f], ledColour[f]);
+            drawLetter (g, f, ledPos (f), ledLevel[f], ledColour[f]);
         }
 
         drawScreen (g);
@@ -338,8 +338,7 @@ private:
                 if (sx < 0 || sy < 0 || sx >= src.getWidth() || sy >= src.getHeight()) continue;
                 const float ux = (float) sx / ppu, uy = (float) sy / ppu;
                 const float d = std::hypot (ux - c.x, (uy - c.y) * 1.08f);
-                if (d < L::ledR * 0.9f) continue;
-                const float tight = 1.0f / std::pow (1.0f + (d / 8.0f) * (d / 8.0f), 1.5f);
+                const float tight = 1.0f / std::pow (1.0f + (d / 13.0f) * (d / 13.0f), 1.5f);
                 const float wide = 0.20f * std::exp (-d / 36.0f);
                 const float win = jlimit (0.0f, 1.0f, (gr.getWidth() * 0.5f - 4.0f - d) / 22.0f);   // retombe à zéro avant le bord du calque
                 const float illum = (1.35f * tight + wide) * win * win;
@@ -355,8 +354,50 @@ private:
         glow[f] = out;
     }
 
-    // ------------------------------------------------------------ LED (modèle Holyverb / Echoflex), couleur variable
-    void drawLed (Graphics& g, Point<float> c0, float lvl, Colour col)
+    // ------------------------------------------------------------ lettre rétroéclairée A / B / C / D (à la place d'une LED)
+    // Éteinte : lettre gravée dans la façade, verre fumé sombre ; le bord bas droit du creux accroche la lumière (en haut à gauche).
+    // Allumée : la lettre s'illumine dans la couleur du mode (cœur presque blanc, bords saturés, léger halo optique) ;
+    // la façade autour reçoit la lumière (calque glow, comme pour les LED).
+    void drawLetter (Graphics& g, int f, Point<float> c0, float lvl, Colour col)
+    {
+        GlyphArrangement ga;
+        ga.addLineOfText (font (tfBold, 38.0f), fsLetter (f), 0.0f, 0.0f);
+        Path p;
+        ga.createPath (p);
+        const auto c = r (c0);
+        const auto b = p.getBounds();
+        p.applyTransform (AffineTransform::translation (c.x - b.getCentreX(), c.y - b.getCentreY()));
+        const auto pb = p.getBounds();
+
+        // gravure : arête claire en bas à droite, ombre en haut à gauche dans le creux
+        g.setColour (Colours::white.withAlpha (0.16f));
+        g.fillPath (p, AffineTransform::translation (0.9f * s, 1.0f * s));
+        g.setColour (Colours::black.withAlpha (0.55f));
+        g.fillPath (p, AffineTransform::translation (-0.6f * s, -0.7f * s));
+        // verre fumé éteint, à peine teinté
+        g.setGradientFill (ColourGradient (Colour (0xff4a4f59).interpolatedWith (col, 0.12f), 0.0f, pb.getY(),
+                                           Colour (0xff2c3038).interpolatedWith (col, 0.08f), 0.0f, pb.getBottom(), false));
+        g.fillPath (p);
+        if (lvl <= 0.003f) return;
+
+        // halo optique autour de la lettre (deux contours larges et transparents)
+        for (int k = 3; k >= 1; --k)
+        {
+            g.setColour (col.withAlpha (0.07f * lvl));
+            g.strokePath (p, PathStrokeType ((float) k * 2.6f * s, PathStrokeType::curved, PathStrokeType::rounded));
+        }
+        // lettre allumée : cœur clair en haut, couleur saturée en bas
+        ColourGradient body (col.interpolatedWith (Colours::white, 0.72f).withAlpha (lvl), 0.0f, pb.getY(),
+                             col.withMultipliedSaturation (1.1f).withAlpha (lvl), 0.0f, pb.getBottom(), false);
+        body.addColour (0.45, col.interpolatedWith (Colours::white, 0.38f).withAlpha (lvl));
+        g.setGradientFill (body);
+        g.fillPath (p);
+        g.setColour (col.withMultipliedBrightness (0.7f).withAlpha (0.5f * lvl));
+        g.strokePath (p, PathStrokeType (0.6f * s));
+    }
+
+    // (ancienne LED, gardée pour référence : plus dessinée)
+    [[maybe_unused]] void drawLed (Graphics& g, Point<float> c0, float lvl, Colour col)
     {
         const auto c = r (c0);
         const float rr = L::ledR * s;

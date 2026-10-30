@@ -3,7 +3,7 @@
 #   Lumière unique : en haut à gauche, élévation ~45° (comme sur toutes les pédales Studio Wiga).
 #   Sorties (à la racine du dépôt) :
 #     background.png : boîtier (aluminium anodisé graphite brossé), lunette de l'écran, logo, marquages, jacks IN / OUT
-#     fs_off.png / fs_on.png : footswitch d'ECHOFLEX (photo réelle), détouré, ombre portée ; fs_on = léger reflet de la LED
+#     fs_off.png / fs_on.png : footswitch d'ECHOFLEX (photo réelle), détouré, ombre portée ; fs_on = léger reflet de la lettre lumineuse
 #   Les positions sont reprises telles quelles dans Layout.h (même nom, mêmes valeurs).
 import os, math
 import numpy as np, cv2
@@ -24,8 +24,7 @@ BEZEL = (74, 98, 1166, 750, 22)                 # lunette de l'écran (presque t
 GLASS = (88, 112, 1152, 736, 12)                # vitre (zone affichée par le plugin) : 1064 x 624
 FS_Y = 838.0
 FS_X = (218.0, 486.0, 754.0, 1022.0)            # alignés sur les 4 cases du bas de l'écran
-LED_DX, LED_Y = 0.0, 774.0                      # LED au-dessus du footswitch, face à un plat de l'écrou
-LETTER_DX, LETTER_Y = -82.0, 838.0              # lettre à gauche du footswitch
+LED_DX, LED_Y = 0.0, 774.0                      # lettre lumineuse (A-D) au-dessus du footswitch, face à un plat de l'écrou
 FS_ROT = 30.0                                   # écrou tourné de 30° : un plat en haut, sous la LED
 FS_FLATS = 80.0                                 # largeur entre plats de l'écrou du footswitch
 JACK_Y = 424.0
@@ -116,10 +115,7 @@ logo = logo.resize((lw, lh), Image.LANCZOS)
 la = np.asarray(logo).astype(np.float64); la[..., 3] *= 0.94
 im.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(90 * AS), int(58 * AS) - lh // 2))     # centré à y = 58
 
-# lettres des footswitchs : à gauche du footswitch, centrées sur sa hauteur
-for i, x in enumerate(FS_X):
-    tw = draw.textlength("ABCD"[i], font=f_letter)
-    draw.text(((x + LETTER_DX) * AS - tw / 2, (LETTER_Y - 16) * AS), "ABCD"[i], font=f_letter, fill=ink)
+# lettres des footswitchs : lettres rétroéclairées dessinées par le plugin au-dessus de chaque footswitch (à la place des LED)
 
 # IN / OUT centrés à la hauteur des jacks (OUT à gauche, IN à droite), écrits le long de la tranche
 for txt, xc, ang in (("OUT", 60.0, 90), ("IN", 1180.0, -90)):
