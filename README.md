@@ -1,8 +1,8 @@
 # OCTOPUS (Studio Wiga)
 
 Plugin VST3 (Windows / macOS) **pour REAPER** : un écran façon multi-effet (inspiré du Quad Cortex mini) qui pilote
-la chaîne d'effets de la piste où il est inséré. Pédale sans jacks qui occupe toute la fenêtre (993 x 743 par défaut et
-au minimum, affichée « 60 % », puis 75 % et 100 % plus grandes), écran sur presque toute la façade, 4 footswitchs (celui d'Echoflex) surmontés de leur lettre A-D rétroéclairée.
+la chaîne d'effets de la piste où il est inséré. Pédale sans jacks qui occupe toute la fenêtre (tailles 50 %, 60 %, 75 %,
+100 % ; taille par défaut au choix dans le menu, 60 % au départ), écran sur presque toute la façade, 4 footswitchs (celui d'Echoflex) surmontés de leur lettre A-D rétroéclairée.
 
 ## Ce que fait Octopus
 - **L'écran montre la chaîne de la piste** (tous les effets sauf Octopus), en blocs colorés par famille
@@ -85,3 +85,5 @@ v1.1.1 : double-clic fiable (détecté par Octopus, la bascule d'un double-clic 
 v1.1.2 : presets utilisateur des plugins (SAVE USER) ; en-tête PRESET / STOMP séparés, SAVE après BANKS ; logo Studio Wiga plus petit
   et centré entre le haut de la pédale et l'écran ; couleur des footswitchs A-D au choix (BANKS) ; accordeur plus compact et menu
   TUNINGS avec les presets d'accordage de CHROMA.
+v1.1.3 : trois rangées de blocs, même espace entre les blocs en largeur et en hauteur ; cases des footswitchs décollées du bas de
+  l'écran ; logo Studio Wiga encore réduit ; taille 50 % et choix de la taille par défaut (réglage commun, `settings.xml`).

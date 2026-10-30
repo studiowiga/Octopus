@@ -2,6 +2,7 @@
 #include "FxCategory.h"
 #include "Layout.h"
 #include "UserFxPresets.h"
+#include "OctoSettings.h"
 #include <BinaryData.h>
 
 using namespace juce;
@@ -20,10 +21,12 @@ namespace
     // ---- écran : repère local (unités), origine = coin haut gauche de la vitre (1064 x 624)
     constexpr float kSW = 1064.0f, kSH = 624.0f;
     constexpr float kHeaderH = 74.0f;
-    constexpr int kRows = 4, kCols = 7;
-    constexpr float kGridTop = 88.0f, kRowPitch = 112.0f, kColX0 = 104.0f, kColPitch = 140.0f;
+    // 3 rangées visibles ; même espace entre les carrés horizontalement et verticalement (pas de 140 = carré 70 + 70)
+    constexpr int kRows = 3, kCols = 7;
+    constexpr float kGridTop = 106.0f, kRowPitch = 140.0f, kColX0 = 104.0f, kColPitch = 140.0f;
     constexpr float kTile = 70.0f, kTileDy = 40.0f;              // carré du bloc, centre à rowTop + kTileDy
-    constexpr float kFooterY = 548.0f, kFooterH = 64.0f, kFooterW = 252.0f;
+    constexpr float kFooterY = 547.0f, kFooterH = 58.0f, kFooterW = 252.0f;   // cases des footswitchs, décollées du bas de l'écran
+    constexpr float kFooterLine = 528.0f;                                       // trait au-dessus des cases
     const Rectangle<float> kOverlay (0.0f, kHeaderH, kSW, kSH - kHeaderH);
 
     Image loadPng (const void* d, int n) { return ImageFileFormat::loadFrom (d, (size_t) n).convertedToFormat (Image::ARGB); }
@@ -484,7 +487,7 @@ private:
 
     int slotAt (Point<float> p) const
     {
-        if (p.y < kGridTop - 6.0f || p.y > kFooterY - 4.0f) return -1;
+        if (p.y < kGridTop - 6.0f || p.y > kFooterLine) return -1;
         for (int k = firstRow * kCols; k < jmin (numSlots(), (firstRow + kRows) * kCols); ++k)
             if (tileRect (k).expanded (12.0f, 6.0f).withHeight (kTile + 34.0f).contains (p)) return k;
         return -1;
@@ -615,7 +618,7 @@ private:
         const auto& blocks = eng.blocks();
         const auto& fx = eng.chain();
         Graphics::ScopedSaveState ss (g);
-        g.reduceClipRegion (S (Rectangle<float> (0.0f, kGridTop - 8.0f, kSW, kFooterY - kGridTop + 4.0f)).toNearestInt());
+        g.reduceClipRegion (S (Rectangle<float> (0.0f, kGridTop - 8.0f, kSW, kFooterLine - kGridTop + 6.0f)).toNearestInt());
 
         drawConnections (g);
 
@@ -675,9 +678,9 @@ private:
             g.setFont (font (tfBold, 14.0f));
             g.setColour (kDim);
             const String t = String (firstRow + 1) + "-" + String (jmin (totalRows(), firstRow + kRows)) + " / " + String (totalRows());
-            g.drawText (t, S (Rectangle<float> (kSW - 120.0f, kFooterY - 22.0f, 112.0f, 18.0f)), Justification::centredRight);
+            g.drawText (t, S (Rectangle<float> (kSW - 120.0f, kFooterLine - 20.0f, 112.0f, 18.0f)), Justification::centredRight);
             if (firstRow > 0) g.drawText (CharPointer_UTF8 ("\xe2\x96\xb2"), S (Rectangle<float> (kSW - 30.0f, kGridTop - 6.0f, 24.0f, 18.0f)), Justification::centred);
-            if (firstRow < maxFirstRow()) g.drawText (CharPointer_UTF8 ("\xe2\x96\xbc"), S (Rectangle<float> (kSW - 30.0f, kFooterY - 40.0f, 24.0f, 18.0f)), Justification::centred);
+            if (firstRow < maxFirstRow()) g.drawText (CharPointer_UTF8 ("\xe2\x96\xbc"), S (Rectangle<float> (kSW - 30.0f, kFooterLine - 38.0f, 24.0f, 18.0f)), Justification::centred);
         }
     }
 
@@ -895,7 +898,7 @@ private:
     void drawFooter (Graphics& g)
     {
         g.setColour (kFaint.withAlpha (0.45f));
-        g.fillRect (S (Rectangle<float> (0.0f, kFooterY - 6.0f, kSW, 1.0f)));
+        g.fillRect (S (Rectangle<float> (0.0f, kFooterLine, kSW, 1.0f)));
         const bool inPresetMode = eng.mode() == OctopusEngine::presetMode;
         for (int f = 0; f < 4; ++f)
         {
@@ -2100,7 +2103,7 @@ private:
             dropPos = dropAt (p);
             // défilement automatique près des bords de la grille
             if (p.y < kGridTop && firstRow > 0) --firstRow;
-            else if (p.y > kFooterY - 10.0f && firstRow < maxFirstRow()) ++firstRow;
+            else if (p.y > kFooterLine - 10.0f && firstRow < maxFirstRow()) ++firstRow;
             askRepaint (screenPx());
         }
     }
@@ -2437,18 +2440,30 @@ private:
     {
         auto* ed = findParentComponentOfClass<OctopusEditor>();
         const int cur = ed != nullptr ? ed->getScaleIndex() : -1;
-        PopupMenu sub;
-        sub.addItem (904, "60 % (default)", true, ed != nullptr && cur < 0 && std::abs (ed->getWidth() - L::kDefaultW) <= 3);
-        sub.addItem (902, "75 %", true, cur == 1);
-        sub.addItem (903, "100 %", true, cur == 2);
+        const int def = OctoSettings::defaultSize();
+        PopupMenu sub, defM;
+        for (int i = 0; i < L::kNumSizes; ++i)
+        {
+            sub.addItem (910 + i, String (L::kSizeNames[i]) + (i == def ? "  (default)" : ""), true, cur == i);
+            defM.addItem (920 + i, L::kSizeNames[i], true, i == def);
+        }
+        sub.addSeparator();
+        sub.addSubMenu ("Default size (new windows)", defM);
         m.addSeparator();
         m.addSubMenu ("Plugin size", sub);
     }
 
     void handleSize (int r)
     {
-        if (r < 902 || r > 904) return;
-        if (auto* ed = findParentComponentOfClass<OctopusEditor>()) ed->setScaleIndex (r == 904 ? -1 : r - 901);
+        auto* ed = findParentComponentOfClass<OctopusEditor>();
+        if (ed == nullptr) return;
+        if (r >= 910 && r < 910 + L::kNumSizes) ed->setScaleIndex (r - 910);
+        else if (r >= 920 && r < 920 + L::kNumSizes)
+        {
+            OctoSettings::setDefaultSize (r - 920);       // taille par défaut de toutes les fenêtres d'Octopus
+            ed->setScaleIndex (-1);                       // cette fenêtre suit la nouvelle taille par défaut
+            eng.say ("Default size : " + String (L::kSizeNames[r - 920]));
+        }
     }
 
     // ------------------------------------------------------------ timer (30 Hz)
@@ -2528,12 +2543,12 @@ OctopusEditor::OctopusEditor (OctopusProcessor& p) : AudioProcessorEditor (&p), 
     view = std::make_unique<PedalView> (proc);
     addAndMakeVisible (*view);
     setResizable (true, true);
-    const int minW = L::kDefaultW;                                                // jamais plus petit que la taille par défaut
+    const int minW = L::kMinW;                                                    // jamais plus petit que 50 %
     const int maxW = L::kMaxW;
     setResizeLimits (minW, (int) std::lround ((double) minW * kH / kW), maxW, (int) std::lround ((double) maxW * kH / kW));
     getConstrainer()->setFixedAspectRatio ((double) kW / (double) kH);
     setOpaque (true);
-    setScaleIndex (jlimit (-1, 2, proc.uiScaleIdx.load()));
+    setScaleIndex (jlimit (-1, L::kNumSizes - 1, proc.uiScaleIdx.load()));
     view->initCaches();
 }
 
@@ -2588,16 +2603,15 @@ void OctopusEditor::resized()
 
 int OctopusEditor::getScaleIndex() const
 {
-    for (int i = 1; i < 3; ++i) if (std::abs (getWidth() - L::kWidths[i]) <= 3) return i;
+    for (int i = 0; i < L::kNumSizes; ++i) if (std::abs (getWidth() - L::kWidths[i]) <= 3) return i;
     return -1;
 }
 
 void OctopusEditor::setScaleIndex (int idx)
 {
-    idx = jlimit (-1, 2, idx);
-    if (idx == 0) idx = -1;
-    proc.uiScaleIdx = idx;
-    const int w = idx < 0 ? L::kDefaultW : L::kWidths[idx];
+    idx = jlimit (-1, L::kNumSizes - 1, idx);
+    proc.uiScaleIdx = idx;                                  // -1 : suit la taille par défaut choisie dans le menu
+    const int w = L::kWidths[idx < 0 ? OctoSettings::defaultSize() : idx];
     setSize (w, (int) std::lround ((double) w * kH / kW));
 }
 

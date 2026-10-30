@@ -12,8 +12,8 @@ public:
     void resized() override;
     void parentHierarchyChanged() override;
     void visibilityChanged() override;
-    int  getScaleIndex() const;          // 1, 2 = 75 %, 100 %  (-1 = taille par défaut / libre)
-    void setScaleIndex (int idx);        // -1 = taille par défaut (affichée 60 %, aussi la taille minimale)
+    int  getScaleIndex() const;          // 0..3 = 50 / 60 / 75 / 100 % (-1 = taille libre)
+    void setScaleIndex (int idx);        // -1 = taille par défaut (réglage commun, 60 % au départ)
     OctopusProcessor& getProc() noexcept { return proc; }
 
     // outil de rendu / tests : ouvre une fenêtre de l'écran (0 = aucune, 1 = ajout d'effet, 2 = paramètres, 3 = banks, 4 = presets du plugin)

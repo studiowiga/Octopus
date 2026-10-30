@@ -368,7 +368,7 @@ void OctopusProcessor::getStateInformation (juce::MemoryBlock& dest)
 {
     juce::ValueTree root ("OctopusState");
     root.setProperty ("version", 1, nullptr);
-    root.setProperty ("uiScale", uiScaleIdx.load(), nullptr);
+    root.setProperty ("uiSize", uiScaleIdx.load(), nullptr);
     {
         const juce::ScopedLock sl (stateLock);
         root.setProperty ("tuningKey", overrideKey, nullptr);
@@ -394,7 +394,8 @@ void OctopusProcessor::setStateInformation (const void* data, int size)
     juce::GZIPDecompressorInputStream gz (in);
     const auto root = juce::ValueTree::readFromStream (gz);
     if (! root.hasType ("OctopusState")) return;
-    uiScaleIdx = (int) root.getProperty ("uiScale", -1);
+    if (root.hasProperty ("uiSize")) uiScaleIdx = juce::jlimit (-1, 3, (int) root.getProperty ("uiSize", -1));
+    else { const int old = (int) root.getProperty ("uiScale", -1); uiScaleIdx = old == 1 ? 2 : old == 2 ? 3 : -1; }   // états 1.1.x
     {
         const juce::ScopedLock sl (stateLock);
         overrideKey = root["tuningKey"].toString();

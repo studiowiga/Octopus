@@ -5,10 +5,12 @@
 namespace OctoLayout
 {
     constexpr int kW = 1240, kH = 928;
-    // tailles de fenêtre (largeur en pixels) : la taille par défaut, affichée « 60 % », est aussi la taille minimale ;
-    // 75 % et 100 % sont proportionnellement plus grandes
-    const int kWidths[3] = { 993, 1241, 1655 };
-    constexpr int kDefaultW = 993, kMaxW = 1700;
+    // tailles de fenêtre (largeur en pixels) : 50 %, 60 % (taille standard), 75 %, 100 % ;
+    // la taille par défaut se choisit dans le menu (réglage commun à toutes les instances, 60 % au départ)
+    constexpr int kNumSizes = 4;
+    const int kWidths[kNumSizes] = { 828, 993, 1241, 1655 };
+    const char* const kSizeNames[kNumSizes] = { "50 %", "60 %", "75 %", "100 %" };
+    constexpr int kStandardSize = 1, kMinW = 828, kMaxW = 1700;
 
     // écran : repère local de 1064 x 624 unités, affiché dans la vitre avec le facteur kG
     constexpr float kG = 1106.0f / 1064.0f;

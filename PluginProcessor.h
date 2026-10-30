@@ -67,7 +67,7 @@ public:
     void chromaSelectTuning (int libraryIndex);     // -1 : revenir à l'accordage de CHROMA
     bool tuningOverridden() const { return overrideKey.isNotEmpty(); }
     juce::AudioProcessorValueTreeState apvts;
-    std::atomic<int> uiScaleIdx { -1 };     // -1 = taille par défaut (60 %)
+    std::atomic<int> uiScaleIdx { -1 };     // -1 = taille par défaut (réglage commun) ; 0..3 = 50 / 60 / 75 / 100 %
 
     static constexpr const char* kTokenId = "octoid";
     static const char* const kTargetIds[OctopusEngine::numTargets];
