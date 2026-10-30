@@ -61,7 +61,7 @@ lourd dans `paint()` (caches du fond, des footswitchs et de l'éclairage des LED
 (redessin non servi en 1,5 s : moteur réappliqué), aucun appel à l'hôte ni allocation dans le thread audio.
 
 ## Visuel
-`python3 tools/make_art.py` génère `background.png` (boîtier graphite brossé sans jacks, lunette et vitre, logos Studio Wiga et OCTOPUS), `fs_off.png` / `fs_on.png` (footswitch inox, photo réelle détourée `design/footswitch_inox_source.png`,
+`python3 tools/make_art.py` génère `background.png` (boîtier acier brossé anthracite sans jacks, lunette et vitre, logos Studio Wiga et OCTOPUS), `fs_off.png` / `fs_on.png` (footswitch inox, photo réelle détourée `design/footswitch_inox_source.png`,
 ombres selon la lumière en haut à gauche). Positions communes : `Layout.h`.
 
 ## Build et vérifications
@@ -100,3 +100,4 @@ v1.2.2 : logo OCTOPUS avec une marge transparente autour du dessin (plus rien de
 v1.2.3 : anneau lumineux placé dans le footswitch, autour du bouton qui s'enfonce (diffuseur gris éteint) ; écrou à sa taille d'origine.
 v1.2.4 : lettres A-D abaissées, à égale distance de l'écran et des footswitchs.
 v1.2.5 : étiquette du preset (1A...) dans la couleur de son footswitch ; clic sur le nom du preset en haut pour le renommer ; preset vide = écran vide comme au démarrage (chaîne vidée, un point d'annulation).
+v1.2.6 : nouveau boîtier d'après le design fourni : acier brossé anthracite au brossage fin, liserés usinés clairs sur le pourtour et autour de l'écran.

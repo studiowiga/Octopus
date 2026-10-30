@@ -64,7 +64,17 @@ brush = brush / (brush.std() + 1e-9)
 fine = cv2.GaussianBlur(rng.standard_normal((H, W)), (0, 0), 0.8)
 base = np.array([46.0, 48.0, 56.0])                                 # graphite légèrement bleuté
 tone = base[None, None, :] * (1 + 0.055 * brush[..., None] + 0.025 * fine[..., None])
-if os.environ.get("OCTO_MATERIAL") == "steel":
+MATERIAL = os.environ.get("OCTO_MATERIAL", "dark")
+if MATERIAL == "dark":
+    # design fourni (oct. 2026) : acier brossé anthracite, brossage fin bien visible, reflets larges très doux
+    scratch = cv2.GaussianBlur(rng.standard_normal((H, W)), (0, 0), sigmaX=18, sigmaY=0.45)
+    scratch = scratch / (scratch.std() + 1e-9)
+    sheen = cv2.GaussianBlur(rng.standard_normal((H // 8, W // 8)), (0, 0), sigmaX=34, sigmaY=22)
+    sheen = cv2.resize(sheen / (sheen.std() + 1e-9), (W, H), interpolation=cv2.INTER_CUBIC)
+    base = np.array([54.0, 56.0, 61.0])
+    tone = base[None, None, :] * (1 + 0.085 * brush[..., None] + 0.075 * scratch[..., None] + 0.05 * sheen[..., None]
+                                  + 0.03 * fine[..., None])
+elif MATERIAL == "steel":
     # essai : alu brossé acier (photo fournie) : gris acier plus clair, brossage plus marqué, rayures fines, reflets larges
     scratch = cv2.GaussianBlur(rng.standard_normal((H, W)), (0, 0), sigmaX=22, sigmaY=0.45)
     scratch = scratch / (scratch.std() + 1e-9)
@@ -88,6 +98,16 @@ lit = np.where(glass[..., None], np.array([8.0, 9.0, 11.0]), lit)
 # ombre portée de la lèvre supérieure / gauche de la lunette sur la vitre
 shadow_in = np.clip(1 - smooth(0, 10, -(sd_round_rect(ux - 3.0, uy - 4.0, GLASS))), 0, 1) * glass
 lit = lit * (1 - 0.55 * shadow_in[..., None])
+
+if MATERIAL == "dark":
+    # arêtes usinées claires (design fourni) : fin liseré brillant sur le pourtour du boîtier et autour du creux de l'écran,
+    # plus lumineux vers la lumière (haut gauche) pour le boîtier, vers le bas pour la lèvre de l'écran
+    side_box = 0.55 + 0.45 * smooth(-1, 1, -((ux - (BOX[0] + BOX[2]) / 2) / 600 + (uy - (BOX[1] + BOX[3]) / 2) / 450))
+    rim = np.exp(-((d_box + 2.2) / 0.7) ** 2) * side_box
+    side_bez = 0.45 + 0.55 * smooth(-1, 1, (uy - (BEZEL[1] + BEZEL[3]) / 2) / 300)
+    lip = np.exp(-((d_bez - 0.9) / 0.55) ** 2) * side_bez
+    lit = lit + (rim * 120 + lip * 135)[..., None] * np.array([1.0, 1.0, 1.04])
+    lit = np.where(inside[..., None], lit, lit)
 
 alpha = np.clip(0.5 - d_box * AS, 0, 1)                              # bord net antialiasé
 # ombre du boîtier sur le fond (le fond du plugin est noir : ombre douce vers le bas à droite)
