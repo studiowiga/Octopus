@@ -34,7 +34,7 @@ int main (int argc, char** argv)
     check (st.getSize() > 16, "état sauvé (" + String ((int) st.getSize()) + " octets)");
     inst->setStateInformation (st.getData(), (int) st.getSize());
     std::unique_ptr<AudioProcessorEditor> ed (inst->createEditorIfNeeded());
-    check (ed != nullptr && ed->getWidth() == 993 && ed->getHeight() == 743, "fenêtre " + String (ed ? ed->getWidth() : 0) + " x " + String (ed ? ed->getHeight() : 0));
+    check (ed != nullptr && ed->getWidth() == 993 && ed->getHeight() == 769, "fenêtre " + String (ed ? ed->getWidth() : 0) + " x " + String (ed ? ed->getHeight() : 0));
     if (ed)
     {
         ed->setVisible (true);

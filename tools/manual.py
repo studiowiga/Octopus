@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.2.7"
+VERSION = "1.3.0"
 TMP = os.path.join(os.path.dirname(os.path.abspath(OUT)), "manual_tmp")
 os.makedirs(TMP, exist_ok=True)
 
@@ -25,11 +25,10 @@ for n, f in (("Pop", "Poppins-Regular"), ("PopL", "Poppins-Light"), ("PopM", "Po
 
 ACC = colors.HexColor("#1E9BD0"); DARK = colors.HexColor("#1A1C22"); GREY = colors.HexColor("#646B76"); LIGHT = colors.HexColor("#EAF4FA")
 
-# ---------- capture annotée (repère 1240 x 928 du plugin) ----------
+# ---------- capture annotée (repère 1267 x 981 du plugin) ----------
 src = Image.open(os.path.join(SHOTS, "octopus_100pc.png")).convert("RGB")
-k = src.height / 928.0
-marks = [(1, 136, 97), (2, 275, 97), (3, 698, 97), (4, 892, 97), (5, 1034, 97), (6, 1120, 97),
-         (7, 183, 217), (8, 620, 401), (9, 1138, 424), (10, 202, 674), (11, 480.7, 846), (12, 440, 787)]
+k = src.height / 981.0
+marks = [(1, 142.2, 101), (2, 283.6, 101), (3, 713.8, 101), (4, 911.1, 101), (5, 1055.6, 101), (6, 1143.0, 101), (7, 190.0, 223.9), (8, 634.5, 411.1), (9, 1161.3, 434.5), (10, 209.3, 688.8), (11, 487.5, 879), (12, 452, 806)]
 ann = src.copy(); dr = ImageDraw.Draw(ann)
 fnt = ImageFont.truetype(os.path.join(ROOT, "fonts", "Poppins-Bold.ttf"), 26)
 for n, x, y in marks:
@@ -38,11 +37,11 @@ for n, x, y in marks:
     dr.text((cx, cy + 1), str(n), font=fnt, fill=(10, 80, 120), anchor="mm")
 annotated = os.path.join(TMP, "annotated.png"); ann.save(annotated)
 
-# gros plans de l'écran (vitre : 88, 112, 1064 x 624)
+# gros plans de l'écran (vitre : 72, 109, 1125 x 660)
 def screen_crop(name, out):
     im = Image.open(os.path.join(SHOTS, name)).convert("RGB")
-    kk = im.height / 928.0
-    im.crop((int(67 * kk), int(104 * kk), int(1173 * kk), int(753 * kk))).save(os.path.join(TMP, out))
+    kk = im.height / 981.0
+    im.crop((int(72 * kk), int(109 * kk), int(1197 * kk), int(769 * kk))).save(os.path.join(TMP, out))
     return os.path.join(TMP, out)
 scr_stomp = screen_crop ("octopus_stomp.png", "stomp.png")
 scr_add = screen_crop ("octopus_add_effect.png", "add.png")
@@ -177,7 +176,7 @@ T = {
  fs_t="6. Footswitches, letters and modes",
  fs=["<b>PRESET mode</b>: footswitches A, B, C, D recall presets A-D of the bank shown in the header (arrows or MIDI Bank down / up change the bank shown; the bank is loaded when you press a footswitch). The letter of the loaded preset lights up in the colour of its footswitch (blue by default, chosen in BANKS &gt; FOOTSWITCH COLOURS).",
      "<b>STOMP mode</b>: each footswitch switches one or several blocks (right-click a block &gt; Assign to footswitch, or right-click a footswitch &gt; STOMP : blocks switched by...). If one of its blocks is ON, a press switches them all OFF; otherwise all ON. The footswitch cell shows the family and names of its blocks, its letter takes the colour of the first block and lights up when one of them is ON. Assignments are saved with the presets.",
-     "Like on Echoflex, a footswitch acts as soon as it is pressed, its button darkens while it is held. Above it, the letter A, B, C or D is backlit: engraved and dark when off, the letter itself lights up in colour, fading in and out.",
+     "Like on Echoflex, a footswitch acts as soon as it is pressed, its button darkens while it is held. Above it, the letter A, B, C or D is backlit: light grey when off, the letter itself lights up in colour, fading in and out, together with the light ring around the button.",
      "Right-click a footswitch: save / load the preset of that footswitch, STOMP assignments, MIDI learn of the footswitch, latching mode, MIDI menu and plug-in size."],
  stomp_cap="STOMP mode: footswitch A switches NGATE + Crycat; the letters take the colour of their blocks.",
  midi_t="7. MIDI",
@@ -278,7 +277,7 @@ T = {
  fs_t="6. Footswitchs, lettres et modes",
  fs=["<b>Mode PRESET</b> : les footswitchs A, B, C, D rappellent les presets A-D de la bank affichée en haut de l'écran (les flèches ou les commandes MIDI Bank down / up changent la bank affichée ; elle est chargée quand vous appuyez sur un footswitch). La lettre du preset chargé s'allume dans la couleur de son footswitch (bleu par défaut, à choisir dans BANKS &gt; FOOTSWITCH COLOURS).",
      "<b>Mode STOMP</b> : chaque footswitch bascule un ou plusieurs blocs (clic droit sur un bloc &gt; Assign to footswitch, ou clic droit sur un footswitch &gt; STOMP : blocks switched by...). Si l'un de ses blocs est ON, un appui les coupe tous ; sinon il les allume tous. La case du footswitch affiche la famille et les noms de ses blocs, sa lettre prend la couleur du premier bloc et s'allume quand l'un d'eux est ON. Les assignations sont enregistrées avec les presets.",
-     "Comme sur Echoflex, un footswitch agit dès l'appui, son bouton s'assombrit tant qu'on appuie. Au-dessus, la lettre A, B, C ou D est rétroéclairée : gravée et sombre quand elle est éteinte, c'est la lettre elle-même qui s'allume en couleur, en fondu.",
+     "Comme sur Echoflex, un footswitch agit dès l'appui, son bouton s'assombrit tant qu'on appuie. Au-dessus, la lettre A, B, C ou D est rétroéclairée : gris clair quand elle est éteinte, c'est la lettre elle-même qui s'allume en couleur (avec l'anneau lumineux autour du bouton), en fondu.",
      "Clic droit sur un footswitch : enregistrer / charger le preset de ce footswitch, assignations STOMP, MIDI learn du footswitch, mode à accrochage, menu MIDI et taille du plugin."],
  stomp_cap="Mode STOMP : le footswitch A bascule NGATE + Crycat ; les lettres prennent la couleur de leurs blocs.",
  midi_t="7. MIDI",

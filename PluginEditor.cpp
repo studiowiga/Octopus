@@ -234,8 +234,8 @@ public:
         for (int f = 0; f < 4; ++f)
         {
             const auto fr = r (Rectangle<float> (L::fsSprite, L::fsSprite).withCentre ({ L::fsX[f], L::fsY }));
-            g.drawImage (fsOff.get(), fr);
-            if (ledLevel[f] > 0.003f)       // flanc de l'écrou tourné vers la LED
+            if (L::drawFsSprite) g.drawImage (fsOff.get(), fr);
+            if (L::drawFsSprite && ledLevel[f] > 0.003f)       // flanc de l'écrou tourné vers la LED
             {
                 g.setOpacity (jmin (1.0f, ledLevel[f]) * 0.35f);
                 g.drawImage (fsOn.get(), fr);
@@ -243,8 +243,8 @@ public:
             }
             if (pressedFs == f)             // comme Echoflex : le bouton s'assombrit tant qu'on appuie
             {
-                const auto c = r (Point<float> (L::fsX[f], L::fsY));
-                const float pr = L::fsRadius * 0.54f * s;
+                const auto c = r (Point<float> (L::capX[f], L::capY[f]));
+                const float pr = L::capR * s;
                 g.setColour (Colours::black.withAlpha (0.25f));
                 g.fillEllipse (c.x - pr, c.y - pr, pr * 2.0f, pr * 2.0f);
             }
@@ -337,7 +337,7 @@ private:
     Point<float> toLocal (Point<float> px) const { return (px / s - L::glass.getPosition()) / L::kG; }
     Rectangle<int> screenPx() const { return r (L::glass).toNearestInt().expanded (2); }
 
-    Point<float> ledPos (int f) const { return { L::fsX[f] + L::ledDx, L::ledY }; }
+    Point<float> ledPos (int f) const { return { L::ledXs[f] + L::ledDx, L::ledY }; }
     Rectangle<float> glowRect (int f) const { return Rectangle<float> (128.0f, 128.0f).withCentre (ledPos (f)); }
 
     float physScale() const
@@ -478,7 +478,7 @@ private:
     void drawLetter (Graphics& g, int f, Point<float> c0, float lvl, Colour col)
     {
         GlyphArrangement ga;
-        ga.addLineOfText (Font (FontOptions (tfBold).withHeight (38.0f * s)), fsLetter (f), 0.0f, 0.0f);
+        ga.addLineOfText (Font (FontOptions (tfBold).withHeight (L::letterFont * s)), fsLetter (f), 0.0f, 0.0f);
         Path p;
         ga.createPath (p);
         const auto c = r (c0);
@@ -491,9 +491,9 @@ private:
         g.fillPath (p, AffineTransform::translation (0.9f * s, 1.0f * s));
         g.setColour (Colours::black.withAlpha (0.55f));
         g.fillPath (p, AffineTransform::translation (-0.6f * s, -0.7f * s));
-        // verre fumé éteint, à peine teinté
-        g.setGradientFill (ColourGradient (Colour (0xff4a4f59).interpolatedWith (col, 0.12f), 0.0f, pb.getY(),
-                                           Colour (0xff2c3038).interpolatedWith (col, 0.08f), 0.0f, pb.getBottom(), false));
+        // éteinte : lettre gris clair sérigraphiée, comme sur le visuel du boîtier, à peine teintée de la couleur du footswitch
+        g.setGradientFill (ColourGradient (Colour (0xffbcc2cc).interpolatedWith (col, 0.10f), 0.0f, pb.getY(),
+                                           Colour (0xff9aa1ad).interpolatedWith (col, 0.07f), 0.0f, pb.getBottom(), false));
         g.fillPath (p);
         if (lvl <= 0.003f) return;
 
@@ -522,7 +522,7 @@ private:
     void drawRing (Graphics& g, int f, float lvl, Colour col)
     {
         if (lvl <= 0.003f) return;
-        const auto c = r (Point<float> (L::fsX[f], L::fsY));
+        const auto c = r (Point<float> (L::capX[f], L::capY[f]));
         const float rm = (L::ringR0 + L::ringR1) * 0.5f * s, wdt = (L::ringR1 - L::ringR0) * s;
         Path ring;
         ring.addEllipse (c.x - rm, c.y - rm, rm * 2.0f, rm * 2.0f);

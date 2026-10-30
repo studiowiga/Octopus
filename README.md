@@ -61,7 +61,7 @@ lourd dans `paint()` (caches du fond, des footswitchs et de l'éclairage des LED
 (redessin non servi en 1,5 s : moteur réappliqué), aucun appel à l'hôte ni allocation dans le thread audio.
 
 ## Visuel
-`python3 tools/make_art.py` génère `background.png` (boîtier acier brossé anthracite sans jacks, lunette et vitre, logos Studio Wiga et OCTOPUS), `fs_off.png` / `fs_on.png` (footswitch inox, photo réelle détourée `design/footswitch_inox_source.png`,
+`python3 tools/make_frame.py` génère `background.png` à partir du visuel fourni (`design/frame_photo.jpg` : marquages effacés, vitre vidée, 148 colonnes retirées pour les proportions de l'écran, logo Studio Wiga net) ; `python3 tools/make_art.py` génère l'ancien fond dessiné (`design/background_procedural.png`) (boîtier acier brossé anthracite sans jacks, lunette et vitre, logos Studio Wiga et OCTOPUS), `fs_off.png` / `fs_on.png` (footswitch inox, photo réelle détourée `design/footswitch_inox_source.png`,
 ombres selon la lumière en haut à gauche). Positions communes : `Layout.h`.
 
 ## Build et vérifications
@@ -102,3 +102,4 @@ v1.2.4 : lettres A-D abaissées, à égale distance de l'écran et des footswitc
 v1.2.5 : étiquette du preset (1A...) dans la couleur de son footswitch ; clic sur le nom du preset en haut pour le renommer ; preset vide = écran vide comme au démarrage (chaîne vidée, un point d'annulation).
 v1.2.6 : nouveau boîtier d'après le design fourni : acier brossé anthracite au brossage fin, liserés usinés clairs sur le pourtour et autour de l'écran.
 v1.2.7 : texture d'acier brossé plus réaliste (tools/brushed.py : lignes de brossage multi-échelles sur toute la largeur, rares rayures, reflet anisotrope en bandes verticales douces).
+v1.3.0 : boîtier repris du visuel fourni (photo, footswitchs compris), écran du plugin dans son ouverture, lettres A-D et anneaux lumineux dessinés par le plugin sur les footswitchs de la photo ; repère 1267 x 981 (fenêtre un peu plus haute).

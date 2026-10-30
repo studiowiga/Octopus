@@ -154,8 +154,9 @@ im.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(66 * AS), 
 
 # (plus de jacks ni d'inscriptions IN / OUT sur les tranches : le boîtier occupe toute la fenêtre)
 
-im.save(os.path.join(ROOT, "background.png"), optimize=True)
-print("background.png", im.size)
+# le fond de la pédale vient maintenant du visuel fourni (tools/make_frame.py) : ce fond dessiné est gardé à part
+im.save(os.path.join(ROOT, "design", "background_procedural.png"), optimize=True)
+print("design/background_procedural.png", im.size)
 
 # ------------------------------------------------------------------ 5) footswitch d'ECHOFLEX (même procédé que Crycat)
 EF_PTS = [(1.7, -56.7), (51.7, -26.7), (51.7, 31.7), (5.0, 58.3), (-48.3, 30.0), (-49.3, -26.7)]
