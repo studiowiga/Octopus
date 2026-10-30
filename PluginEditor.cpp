@@ -25,7 +25,8 @@ namespace
     constexpr int kRows = 3, kCols = 7;
     constexpr float kGridTop = 106.0f, kRowPitch = 140.0f, kColX0 = 104.0f, kColPitch = 140.0f;
     constexpr float kTile = 70.0f, kTileDy = 40.0f;              // carré du bloc, centre à rowTop + kTileDy
-    constexpr float kFooterY = 547.0f, kFooterH = 58.0f, kFooterW = 252.0f;   // cases des footswitchs, décollées du bas de l'écran
+    // cases des footswitchs : même écart entre elles et avec les bords de l'écran, décollées du bas
+    constexpr float kFooterY = 547.0f, kFooterH = 58.0f, kFooterGap = 16.0f, kFooterW = (kSW - 5.0f * kFooterGap) / 4.0f;
     constexpr float kFooterLine = 528.0f;                                       // trait au-dessus des cases
     const Rectangle<float> kOverlay (0.0f, kHeaderH, kSW, kSH - kHeaderH);
 
@@ -930,7 +931,7 @@ private:
 
     Rectangle<float> footerCell (int f) const
     {
-        return Rectangle<float> (kFooterW, kFooterH).withCentre ({ (L::fsX[f] - L::glass.getX()) / L::kG, kFooterY + kFooterH * 0.5f });
+        return { kFooterGap + (kFooterW + kFooterGap) * (float) f, kFooterY, kFooterW, kFooterH };
     }
     int footerAt (Point<float> p) const
     {
