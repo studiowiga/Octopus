@@ -165,22 +165,13 @@ public:
         g.fillAll (Colours::black);
         g.drawImage (bg.get(), getLocalBounds().toFloat());
 
-        // façade éclairée par les LED (calques précalculés, avec alpha, sous les footswitchs)
-        for (int f = 0; f < 4; ++f)
-            if (ledLevel[f] > 0.003f && glow[f].isValid())
-            {
-                g.setOpacity (jmin (1.0f, ledLevel[f]));
-                g.drawImage (glow[f], r (glowRect (f)));
-                g.setOpacity (1.0f);
-            }
-
         for (int f = 0; f < 4; ++f)
         {
             const auto fr = r (Rectangle<float> (L::fsSprite, L::fsSprite).withCentre ({ L::fsX[f], L::fsY }));
             g.drawImage (fsOff.get(), fr);
             if (ledLevel[f] > 0.003f)       // flanc de l'écrou tourné vers la LED
             {
-                g.setOpacity (jmin (1.0f, ledLevel[f]) * 0.85f);
+                g.setOpacity (jmin (1.0f, ledLevel[f]) * 0.35f);
                 g.drawImage (fsOn.get(), fr);
                 g.setOpacity (1.0f);
             }
@@ -309,7 +300,6 @@ private:
         if (getWidth() <= 0) return;
         const float ps = s * dispScale;
         for (auto* c : { &bg, &fsOff, &fsOn }) c->prepare (ps);
-        for (int f = 0; f < 4; ++f) buildGlow (f);
         layoutEditors();
         askRepaint (getLocalBounds());
     }
@@ -356,8 +346,7 @@ private:
 
     // ------------------------------------------------------------ lettre rétroéclairée A / B / C / D (à la place d'une LED)
     // Éteinte : lettre gravée dans la façade, verre fumé sombre ; le bord bas droit du creux accroche la lumière (en haut à gauche).
-    // Allumée : la lettre s'illumine dans la couleur du mode (cœur presque blanc, bords saturés, léger halo optique) ;
-    // la façade autour reçoit la lumière (calque glow, comme pour les LED).
+    // Allumée : seul le tracé de la lettre s'éclaire, dans la couleur du mode (aucune tache de lumière sur la façade).
     void drawLetter (Graphics& g, int f, Point<float> c0, float lvl, Colour col)
     {
         GlyphArrangement ga;
@@ -380,20 +369,14 @@ private:
         g.fillPath (p);
         if (lvl <= 0.003f) return;
 
-        // halo optique autour de la lettre (deux contours larges et transparents)
-        for (int k = 3; k >= 1; --k)
-        {
-            g.setColour (col.withAlpha (0.07f * lvl));
-            g.strokePath (p, PathStrokeType ((float) k * 2.6f * s, PathStrokeType::curved, PathStrokeType::rounded));
-        }
-        // lettre allumée : cœur clair en haut, couleur saturée en bas
-        ColourGradient body (col.interpolatedWith (Colours::white, 0.72f).withAlpha (lvl), 0.0f, pb.getY(),
-                             col.withMultipliedSaturation (1.1f).withAlpha (lvl), 0.0f, pb.getBottom(), false);
-        body.addColour (0.45, col.interpolatedWith (Colours::white, 0.38f).withAlpha (lvl));
+        // seule la lettre s'éclaire : verre teinté rétroéclairé, intensité modérée, très léger débord lumineux sur son contour
+        const float k = 0.82f * lvl;
+        g.setColour (col.withAlpha (0.10f * lvl));
+        g.strokePath (p, PathStrokeType (1.8f * s, PathStrokeType::curved, PathStrokeType::rounded));
+        ColourGradient body (col.interpolatedWith (Colours::white, 0.30f).withAlpha (k), 0.0f, pb.getY(),
+                             col.withMultipliedBrightness (0.80f).withAlpha (k), 0.0f, pb.getBottom(), false);
         g.setGradientFill (body);
         g.fillPath (p);
-        g.setColour (col.withMultipliedBrightness (0.7f).withAlpha (0.5f * lvl));
-        g.strokePath (p, PathStrokeType (0.6f * s));
     }
 
     // (ancienne LED, gardée pour référence : plus dessinée)
@@ -1663,7 +1646,6 @@ private:
             Colour col = kPresetLed;
             if (eng.mode() == OctopusEngine::stompMode) { const int k = eng.fsKind (f); col = k >= 0 ? FxCat::colour (k) : kPresetLed; }
             if (lit || ledLevel[f] < 0.01f) ledColour[f] = col;                     // pendant l'extinction, la couleur reste
-            if (ledColour[f] != glowColour[f] && resizeSettle == 0) buildGlow (f);
             const float target = lit ? 1.0f : 0.0f;
             const float before = ledLevel[f];
             ledLevel[f] += (target - ledLevel[f]) * (target > ledLevel[f] ? 0.45f : 0.28f);

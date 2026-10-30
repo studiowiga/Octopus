@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 TMP = os.path.join(os.path.dirname(os.path.abspath(OUT)), "manual_tmp")
 os.makedirs(TMP, exist_ok=True)
 
@@ -145,7 +145,7 @@ T = {
  fs_t="6. Footswitches, letters and modes",
  fs=["<b>PRESET mode</b>: footswitches A, B, C, D recall presets A-D of the bank shown in the header (arrows or MIDI Bank down / up change the bank shown; the bank is loaded when you press a footswitch). The letter of the loaded preset lights up in blue.",
      "<b>STOMP mode</b>: each footswitch switches one or several blocks (right-click a block &gt; Assign to footswitch, or right-click a footswitch &gt; STOMP : blocks switched by...). If one of its blocks is ON, a press switches them all OFF; otherwise all ON. The footswitch cell shows the family and names of its blocks, its letter takes the colour of the first block and lights up when one of them is ON. Assignments are saved with the presets.",
-     "Like on Echoflex, a footswitch acts as soon as it is pressed, its button darkens while it is held. Above it, the letter A, B, C or D is backlit: engraved and dark when off, it fades in and out in colour and lights the panel around it.",
+     "Like on Echoflex, a footswitch acts as soon as it is pressed, its button darkens while it is held. Above it, the letter A, B, C or D is backlit: engraved and dark when off, the letter itself lights up in colour, fading in and out.",
      "Right-click a footswitch: save / load the preset of that footswitch, STOMP assignments, MIDI learn of the footswitch, latching mode, MIDI menu and plug-in size."],
  stomp_cap="STOMP mode: footswitch A switches NGATE + Crycat; the letters take the colour of their blocks.",
  midi_t="7. MIDI",
@@ -216,7 +216,7 @@ T = {
  fs_t="6. Footswitchs, lettres et modes",
  fs=["<b>Mode PRESET</b> : les footswitchs A, B, C, D rappellent les presets A-D de la bank affichée en haut de l'écran (les flèches ou les commandes MIDI Bank down / up changent la bank affichée ; elle est chargée quand vous appuyez sur un footswitch). La lettre du preset chargé s'allume en bleu.",
      "<b>Mode STOMP</b> : chaque footswitch bascule un ou plusieurs blocs (clic droit sur un bloc &gt; Assign to footswitch, ou clic droit sur un footswitch &gt; STOMP : blocks switched by...). Si l'un de ses blocs est ON, un appui les coupe tous ; sinon il les allume tous. La case du footswitch affiche la famille et les noms de ses blocs, sa lettre prend la couleur du premier bloc et s'allume quand l'un d'eux est ON. Les assignations sont enregistrées avec les presets.",
-     "Comme sur Echoflex, un footswitch agit dès l'appui, son bouton s'assombrit tant qu'on appuie. Au-dessus, la lettre A, B, C ou D est rétroéclairée : gravée et sombre quand elle est éteinte, elle s'allume et s'éteint en fondu, en couleur, et éclaire la façade autour d'elle.",
+     "Comme sur Echoflex, un footswitch agit dès l'appui, son bouton s'assombrit tant qu'on appuie. Au-dessus, la lettre A, B, C ou D est rétroéclairée : gravée et sombre quand elle est éteinte, c'est la lettre elle-même qui s'allume en couleur, en fondu.",
      "Clic droit sur un footswitch : enregistrer / charger le preset de ce footswitch, assignations STOMP, MIDI learn du footswitch, mode à accrochage, menu MIDI et taille du plugin."],
  stomp_cap="Mode STOMP : le footswitch A bascule NGATE + Crycat ; les lettres prennent la couleur de leurs blocs.",
  midi_t="7. MIDI",
