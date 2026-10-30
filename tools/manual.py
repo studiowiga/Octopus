@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.2.2"
+VERSION = "1.2.3"
 TMP = os.path.join(os.path.dirname(os.path.abspath(OUT)), "manual_tmp")
 os.makedirs(TMP, exist_ok=True)
 
@@ -129,7 +129,7 @@ T = {
    ["9", "IN / OUT", "Signal flow of the track, from left to right, row after row."],
    ["10", "Footswitch cells", "What each footswitch does in the current mode; a click works like the footswitch."],
    ["11", "Footswitches A-D", "Recall presets A-D of the bank shown (PRESET) or switch their blocks (STOMP)."],
-   ["12", "Letter A-D and ring", "Backlit letter and light ring around the footswitch: lit for the loaded preset (in the colour chosen for that footswitch, blue by default) or for blocks that are ON (colour of the block)."],
+   ["12", "Letter A-D and ring", "Backlit letter and light ring inside the footswitch (around the button): lit for the loaded preset (in the colour chosen for that footswitch, blue by default) or for blocks that are ON (colour of the block)."],
    ],
  ctl_t="4. The screen in detail",
  ctl=[("Blocks", "Each effect of the track is a block whose colour and icon show its family, guessed from the plug-in name: tuner, amp, cab / IR, drive, dynamics, EQ, wah / filter, delay, reverb, modulation, pitch, special, utility. A lit block with a coloured corner dot is ON; a grey block is bypassed. Small marks show a plug-in window that is open (square, top left), processing in parallel with the previous effect (||) and an offline plug-in (red line). The utility family is shown in white (never grey, so it cannot be mistaken for a block that is off). Octopus itself is not shown. Seven blocks per row and three rows on screen, with the same space between blocks across and down; with more effects, scroll with the mouse wheel (the row count appears bottom right)."),
@@ -207,7 +207,7 @@ T = {
    ["9", "IN / OUT", "Trajet du signal de la piste, de gauche à droite, rangée après rangée."],
    ["10", "Cases des footswitchs", "Ce que fait chaque footswitch dans le mode actuel ; un clic agit comme le footswitch."],
    ["11", "Footswitchs A-D", "Rappellent les presets A-D de la bank affichée (PRESET) ou basculent leurs blocs (STOMP)."],
-   ["12", "Lettre A-D et anneau", "Lettre rétroéclairée et anneau lumineux autour du footswitch : allumés pour le preset chargé (dans la couleur choisie pour ce footswitch, bleu par défaut) ou pour les blocs allumés (couleur du bloc)."],
+   ["12", "Lettre A-D et anneau", "Lettre rétroéclairée et anneau lumineux dans le footswitch (autour du bouton) : allumés pour le preset chargé (dans la couleur choisie pour ce footswitch, bleu par défaut) ou pour les blocs allumés (couleur du bloc)."],
    ],
  ctl_t="4. L'écran en détail",
  ctl=[("Blocs", "Chaque effet de la piste est un bloc dont la couleur et l'icône indiquent la famille, devinée d'après le nom du plugin : accordeur, ampli, baffle / IR, drive, dynamique, EQ, wah / filtre, delay, reverb, modulation, pitch, spécial, utilitaire. Un bloc coloré avec son point allumé est ON ; un bloc gris est contourné. De petits repères signalent une fenêtre de plugin ouverte (carré en haut à gauche), un traitement en parallèle avec l'effet précédent (||) et un plugin hors ligne (trait rouge). La famille utilitaire est en blanc (jamais en gris, pour ne pas la confondre avec un bloc éteint). Octopus lui-même n'est pas affiché. Sept blocs par rangée et trois rangées à l'écran, avec le même espace entre les blocs en largeur et en hauteur ; au-delà, faites défiler avec la molette (le nombre de rangées s'affiche en bas à droite)."),

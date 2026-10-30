@@ -97,3 +97,4 @@ v1.1.9 : logo OCTOPUS agrandi (54 unités de haut).
 v1.2.0 : nouveaux footswitchs inox (photo fournie, écrou plat en haut) ; blanc du bloc utilitaire allumé encore 5 % plus transparent.
 v1.2.1 : logo OCTOPUS dessiné par le plugin à la taille exacte (net à toutes les tailles) ; footswitchs remontés, anneau lumineux autour de chaque footswitch (diffuseur gris éteint, couleur du footswitch allumé, avec halo, comme la Phase 90).
 v1.2.2 : logo OCTOPUS avec une marge transparente autour du dessin (plus rien de rogné en bas à la mise à l'échelle), redessiné à la bonne taille pendant un redimensionnement.
+v1.2.3 : anneau lumineux placé dans le footswitch, autour du bouton qui s'enfonce (diffuseur gris éteint) ; écrou à sa taille d'origine.

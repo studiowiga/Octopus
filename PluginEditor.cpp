@@ -228,7 +228,6 @@ public:
         for (int f = 0; f < 4; ++f)
         {
             const auto fr = r (Rectangle<float> (L::fsSprite, L::fsSprite).withCentre ({ L::fsX[f], L::fsY }));
-            drawRing (g, f, ledLevel[f], ledColour[f]);         // anneau lumineux sous l'écrou (le halo intérieur passe dessous)
             g.drawImage (fsOff.get(), fr);
             if (ledLevel[f] > 0.003f)       // flanc de l'écrou tourné vers la LED
             {
@@ -243,6 +242,7 @@ public:
                 g.setColour (Colours::black.withAlpha (0.25f));
                 g.fillEllipse (c.x - pr, c.y - pr, pr * 2.0f, pr * 2.0f);
             }
+            drawRing (g, f, ledLevel[f], ledColour[f]);         // anneau lumineux autour du bouton qui s'enfonce
             drawLetter (g, f, ledPos (f), ledLevel[f], ledColour[f]);
         }
 
@@ -481,6 +481,7 @@ private:
     }
 
     // ------------------------------------------------------------ anneau lumineux autour du footswitch (comme la Phase 90)
+    // Dans le footswitch, dans la gorge entre le bouton qui s'enfonce et la bague.
     // Éteint : le diffuseur gris du visuel. Allumé : verre éclairé dans la couleur du footswitch (couleur du preset en
     // mode PRESET, du bloc en mode STOMP), cœur plus clair, et halo qui déborde sur la façade.
     void drawRing (Graphics& g, int f, float lvl, Colour col)
@@ -490,9 +491,9 @@ private:
         const float rm = (L::ringR0 + L::ringR1) * 0.5f * s, wdt = (L::ringR1 - L::ringR0) * s;
         Path ring;
         ring.addEllipse (c.x - rm, c.y - rm, rm * 2.0f, rm * 2.0f);
-        for (float hw = 34.0f; hw > 7.0f; hw -= 3.0f)                    // halo : traits de plus en plus larges et transparents
+        for (float hw = 13.0f; hw > 3.0f; hw -= 1.5f)                    // halo : traits de plus en plus larges et transparents
         {
-            g.setColour (col.withAlpha (0.030f * lvl));
+            g.setColour (col.withAlpha (0.045f * lvl));
             g.strokePath (ring, PathStrokeType (hw * s));
         }
         g.setColour (col.withAlpha (0.85f * lvl));

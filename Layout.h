@@ -27,5 +27,5 @@ namespace OctoLayout
     // 1768 x 510 (marge transparente de 32 px tout autour : aucun bord du dessin n'est rogné à la mise à l'échelle)
     constexpr float logoH = 54.0f, logoW = logoH * 1704.0f / 446.0f, logoRight = 1174.0f, logoCy = 51.0f;
     constexpr float logoPad = logoH * 32.0f / 446.0f;
-    constexpr float ringR0 = 46.5f, ringR1 = 52.0f;             // anneau lumineux (comme la Phase 90), mêmes valeurs que make_art.py
+    constexpr float ringR0 = 27.4f, ringR1 = 29.5f;             // anneau lumineux dans le footswitch, autour du bouton (comme la Phase 90)
 }
