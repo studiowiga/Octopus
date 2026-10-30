@@ -18,11 +18,11 @@ jobs:
           path: build/Octopus_artefacts/Release/VST3/
 
   mac:
-    runs-on: macos-15     # macos-14 retiré par GitHub le 2 novembre 2026
+    runs-on: macos-15-intel     # macos-14 retiré le 2 novembre 2026 ; les Mac arm64 de GitHub sont saturés (jobs jamais pris en charge)
     steps:
       - uses: actions/checkout@v5
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
       - name: Build
         run: cmake --build build --config Release --parallel 4
       - name: Sign (ad-hoc) and zip
