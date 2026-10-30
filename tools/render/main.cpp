@@ -233,6 +233,16 @@ int main (int argc, char** argv)
     ed->setScaleIndex (3);
     shot ("octopus_100pc");
 
+    // famille utilitaire (blanc) : un bloc allumé, un bloc éteint
+    {
+        e.addFx ({ "JS: Utility/volume", "" }, 0);
+        e.addFx ({ "VST3: Stereo Width (Studio Wiga)", "" }, 1);
+        e.setEnabled (e.blocks()[1], false);
+        shot ("octopus_utility_on_off");
+        e.remove (e.blocks()[1]);
+        e.remove (e.blocks()[0]);
+    }
+
     // longue chaîne : défilement
     for (int i = 0; i < 9; ++i) e.addFx ({ "VST3: ReaEQ (Cockos)", "" }, 99);
     shot ("octopus_long_chain");
