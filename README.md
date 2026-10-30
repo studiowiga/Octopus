@@ -105,3 +105,4 @@ v1.2.7 : texture d'acier brossé plus réaliste (tools/brushed.py : lignes de br
 v1.3.0 : boîtier repris du visuel fourni (photo, footswitchs compris), écran du plugin dans son ouverture, lettres A-D et anneaux lumineux dessinés par le plugin sur les footswitchs de la photo ; repère 1267 x 981 (fenêtre un peu plus haute).
 v1.3.1 : photo du boîtier redressée (prise un peu en plongée) : côtés de la pédale parfaitement verticaux, aussi larges en haut qu'en bas.
 v1.3.2 : anneau lumineux calé sur le bord du chapeau de chaque footswitch (centre et rayon mesurés un par un sur la photo).
+v1.3.3 : anneau lumineux qui suit la forme de chaque bouton (chapeau + flanc vu en perspective, contour relevé sur chaque footswitch).

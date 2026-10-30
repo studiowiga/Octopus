@@ -522,10 +522,10 @@ private:
     void drawRing (Graphics& g, int f, float lvl, Colour col)
     {
         if (lvl <= 0.003f) return;
-        const auto c = r (Point<float> (L::capX[f], L::capY[f]));
-        const float rm = (L::ringR0 + L::ringR1) * 0.5f * s, wdt = (L::ringR1 - L::ringR0) * s;
+        const auto c = r (Point<float> (L::ringCx[f], L::ringCy[f]));
+        const float rx = L::ringRx[f] * s, ry = L::ringRy[f] * s, wdt = L::ringW * s;
         Path ring;
-        ring.addEllipse (c.x - rm, c.y - rm, rm * 2.0f, rm * 2.0f);
+        ring.addEllipse (c.x - rx, c.y - ry, rx * 2.0f, ry * 2.0f);
         for (float hw = 13.0f; hw > 3.0f; hw -= 1.5f)                    // halo : traits de plus en plus larges et transparents
         {
             g.setColour (col.withAlpha (0.045f * lvl));

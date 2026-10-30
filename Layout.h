@@ -36,6 +36,11 @@ namespace OctoLayout
     // (comme sur le visuel), 62 de haut, centré à 53 ; dessin 1704 x 446 dans une image 1768 x 510
     constexpr float logoH = 62.0f, logoW = logoH * 1704.0f / 446.0f, logoRight = 1200.0f, logoCy = 53.0f;
     constexpr float logoPad = logoH * 32.0f / 446.0f;
-    // anneau lumineux autour du bouton qui s'enfonce (comme la Phase 90)
-    constexpr float ringR0 = 30.8f, ringR1 = 33.4f;             // juste autour du bord du chapeau
+    // anneau lumineux autour du bouton qui s'enfonce (comme la Phase 90) : il suit le contour du bouton vu sur la photo
+    // (chapeau + flanc visible en perspective), relevé à la main sur chaque footswitch : ellipse centre / rayons
+    const float ringCx[4] = { 206.1f, 487.6f, 773.0f, 1056.5f };
+    const float ringCy[4] = { 878.0f, 877.2f, 876.7f, 876.7f };
+    const float ringRx[4] = { 35.3f, 36.0f, 36.0f, 35.6f };
+    const float ringRy[4] = { 38.0f, 37.8f, 37.2f, 37.8f };
+    constexpr float ringW = 2.8f;                               // largeur du trait lumineux
 }
