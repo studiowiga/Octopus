@@ -1,0 +1,4 @@
+build/
+simbuild/
+*.user
+.DS_Store

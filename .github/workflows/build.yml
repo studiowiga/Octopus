@@ -1,0 +1,57 @@
+name: Build Windows + macOS
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  win:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: Octopus-VST3-Windows
+          path: build/Octopus_artefacts/Release/VST3/
+
+  mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+      - name: Sign (ad-hoc) and zip
+        run: |
+          mkdir -p out
+          for b in build/Octopus_artefacts/VST3/*.vst3 build/Octopus_artefacts/Release/VST3/*.vst3; do
+            [ -e "$b" ] || continue
+            codesign --force --deep --sign - "$b"
+            ditto "$b" "out/$(basename "$b")"
+          done
+          cd out && ls -la
+      - name: Upload macOS plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: Octopus-macOS-VST3
+          path: out/
+
+  # pont REAPER testé contre une API de REAPER simulée (tools/reaper_sim)
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libasound2-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libfreetype-dev libfontconfig1-dev
+          git clone --depth 1 --branch 8.0.15 https://github.com/juce-framework/JUCE.git ../JUCE
+      - name: Build and run REAPER bridge tests
+        run: |
+          cmake -S tools/reaper_sim -B simbuild -DJUCE_DIR=$PWD/../JUCE -DCMAKE_BUILD_TYPE=Release
+          cmake --build simbuild --parallel 4
+          ./simbuild/OctopusReaperSim_artefacts/Release/OctopusReaperSim

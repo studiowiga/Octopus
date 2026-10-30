@@ -1,0 +1,10 @@
+# Charge le VST3 compilé comme le ferait un hôte : paramètres, bus, traitement, état, fenêtre (Linux, hors plugin)
+cmake_minimum_required(VERSION 3.22)
+project(OctopusHostCheck VERSION 1.0.0)
+set(CMAKE_CXX_STANDARD 17)
+add_subdirectory(${JUCE_DIR} JUCE)
+juce_add_console_app(OctopusHostCheck PRODUCT_NAME "OctopusHostCheck")
+target_sources(OctopusHostCheck PRIVATE main.cpp)
+target_compile_definitions(OctopusHostCheck PRIVATE JUCE_PLUGINHOST_VST3=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_STANDALONE_APPLICATION=1
+  JUCE_ALSA=0 JUCE_JACK=0 JUCE_MODAL_LOOPS_PERMITTED=1)
+target_link_libraries(OctopusHostCheck PRIVATE juce::juce_audio_utils juce::juce_recommended_config_flags)
