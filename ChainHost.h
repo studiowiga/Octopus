@@ -35,6 +35,16 @@ struct EntryInsert
     int at = 0;               // position finale dans la chaîne (indices REAPER, Octopus compris)
 };
 
+// presets d'un plugin (ceux de la liste de presets de REAPER : usine + utilisateur)
+struct PluginPresets
+{
+    juce::StringArray names;      // dans l'ordre de REAPER (index de TrackFX_SetPresetByIndex)
+    juce::Array<bool> user;       // preset utilisateur (fichier .ini de REAPER) ou d'usine
+    int current = -1;             // preset actif (-1 = réglages modifiés / aucun)
+    int count = 0;
+    bool byName = false;          // noms sans index fiables : charger par le nom
+};
+
 class ChainHost
 {
 public:
@@ -75,6 +85,16 @@ public:
     //   insère des effets complets (réglages compris) aux positions données (triées par position croissante)
     virtual bool insertEntries (const juce::Array<EntryInsert>& items, juce::String& error) = 0;
 
+    // presets du plugin : probe = lire aussi les noms (REAPER ne donne que le nombre : chaque preset est chargé
+    // un instant puis l'état exact du plugin est rétabli)
+    virtual PluginPresets presets (int index, bool probe) = 0;
+    virtual juce::String presetName (int index) = 0;
+    virtual bool loadPreset (int index, int presetIndex, const juce::String& name) = 0;
+    virtual bool stepPreset (int index, int dir) = 0;
+
+    // état d'un seul effet au format texte de REAPER (ChainChunk)
+    virtual juce::String fxChunk (int index) = 0;
+
     // effets installés (liste de REAPER)
     virtual juce::Array<InstalledFx> installed() = 0;
 };
@@ -92,6 +112,7 @@ public:
                          "VST3: Genome (Two notes Audio Engineering)", "VST3: ReaEQ (Cockos)",
                          "VST3: ECHOFLEX (Studio Wiga)", "VST3: Holyverb (Studio Wiga)" })
             chain.add (make (n, true, false));
+        chain.getReference (1).enabled = false;
         chain.getReference (3).enabled = false;
         chain.getReference (6).enabled = false;
         chain.getReference (10).enabled = false;
@@ -128,9 +149,11 @@ public:
     void beginUndo() override {}
     void endUndo (const juce::String&) override {}
 
-    int numParams (int i) override { return ok (i) ? 11 : 0; }
-    juce::String paramName (int, int p) override
+    bool isChroma (int i) const { return ok (i) && chain[i].original.containsIgnoreCase ("CHROMA"); }
+    int numParams (int i) override { return ok (i) ? (isChroma (i) ? 3 : 11) : 0; }
+    juce::String paramName (int i, int p) override
     {
+        if (isChroma (i)) { static const char* c[] = { "Mute", "Mode", "Reference A4" }; return c[juce::jlimit (0, 2, p)]; }
         static const char* n[] = { "Level", "Tone", "Gain", "Mix", "Time", "Feedback", "Rate", "Depth", "Bypass", "Wet", "Delta" };
         return n[juce::jlimit (0, 10, p)];
     }
@@ -169,6 +192,47 @@ public:
         return true;
     }
 
+    PluginPresets presets (int i, bool probe) override
+    {
+        PluginPresets p;
+        if (! ok (i) || isChroma (i)) return p;
+        static const char* f[] = { "Default", "Clean Ambient", "Crunch", "Lead Boost", "Doom", "Wide Stereo", "Vintage", "Subtle" };
+        p.count = 10; p.current = presetIdx.contains (chain[i].guid) ? (int) presetIdx[chain[i].guid] : 0;
+        if (probe)
+        {
+            for (auto* n : f) { p.names.add (n); p.user.add (false); }
+            p.names.add ("My live sound"); p.user.add (true);
+            p.names.add ("Studio 2026"); p.user.add (true);
+        }
+        return p;
+    }
+    juce::String presetName (int i) override
+    {
+        const auto p = presets (i, true);
+        return juce::isPositiveAndBelow (p.current, p.names.size()) ? p.names[p.current] : juce::String();
+    }
+    bool loadPreset (int i, int idx, const juce::String&) override
+    {
+        if (! ok (i)) return false;
+        presetIdx.set (chain[i].guid, idx);
+        for (int k = 0; k < 11; ++k) values.set (chain[i].guid + "/" + juce::String (k), std::fmod (0.17 * (idx + 1) + 0.09 * k, 1.0));
+        return true;
+    }
+    bool stepPreset (int i, int dir) override
+    {
+        if (! ok (i)) return false;
+        const auto p = presets (i, false);
+        return loadPreset (i, (p.current + dir + p.count) % p.count, {});
+    }
+    juce::String fxChunk (int i) override
+    {
+        if (! ok (i)) return {};
+        juce::String xml = "<?xml version=\"1.0\"?><TunaState tuningKey=\"factory|GUITARE 7 CORDES|Sol standard (7)\" "
+                           "tuningNotes=\"G1 D2 G2 C3 F3 A3 D4\" tuningName=\"G standard (7)\"><PARAM id=\"mode\" value=\"0.0\"/></TunaState>";
+        return "BYPASS 0 0 0\n<VST \"" + chain[i].original + "\" demo.vst3 0 \"\" 0<00> \"\"\n"
+               + juce::Base64::toBase64 ("VC2!" + xml) + "\n>\nFLOATPOS 0 0 0 0\nWAK 0 0\n";
+    }
+
     juce::Array<InstalledFx> installed() override
     {
         juce::Array<InstalledFx> a;
@@ -187,7 +251,7 @@ public:
 
 private:
     juce::Array<FxInfo> chain;
-    juce::NamedValueSet values;
+    juce::NamedValueSet values, presetIdx;
     int nextId = 1;
 
     bool ok (int i) const { return juce::isPositiveAndBelow (i, chain.size()); }

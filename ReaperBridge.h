@@ -43,6 +43,11 @@ public:
     void setParam (int index, int p, double v) override;
     bool capture (juce::StringArray& entries, int& selfPos, juce::String& error) override;
     bool insertEntries (const juce::Array<EntryInsert>& items, juce::String& error) override;
+    PluginPresets presets (int index, bool probe) override;
+    juce::String presetName (int index) override;
+    bool loadPreset (int index, int presetIndex, const juce::String& name) override;
+    bool stepPreset (int index, int dir) override;
+    juce::String fxChunk (int index) override;
     juce::Array<InstalledFx> installed() override;
 
 private:
@@ -65,6 +70,7 @@ private:
     int rawCount (bool rec);
     bool validIndex (int i);
     bool trackChunk (void* tr, juce::String& out);
+    bool namedBig (int raw, const char* key, juce::String& out);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReaperBridge)
 };

@@ -44,6 +44,9 @@ public:
     void remove (int chainIndex);
     void moveBlock (int chainIndex, int toBlockPos);                      // toBlockPos : position voulue parmi les blocs
     bool addFx (const InstalledFx& f, int blockPos);                       // blockPos >= nombre de blocs : à la fin
+    int  addFxList (const juce::Array<InstalledFx>& list, int blockPos);   // plusieurs effets à la suite (un seul point d'annulation)
+    int  chromaIndex() const;                                               // bloc CHROMA allumé (accordeur), -1 sinon
+    static bool isChroma (const FxInfo& f);
     void openWindow (int chainIndex, bool show);
     void setParallel (int chainIndex, bool on);
 

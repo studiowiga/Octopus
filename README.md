@@ -1,18 +1,25 @@
 # OCTOPUS (Studio Wiga)
 
 Plugin VST3 (Windows / macOS) **pour REAPER** : un écran façon multi-effet (inspiré du Quad Cortex mini) qui pilote
-la chaîne d'effets de la piste où il est inséré. Format **pédale double** (fenêtre de Ring Think : 661 x 495 par défaut et
-au minimum, puis 75 % et 100 %), écran sur presque toute la façade, 4 footswitchs (celui d'Echoflex) surmontés de leur lettre A-D rétroéclairée.
+la chaîne d'effets de la piste où il est inséré. Pédale sans jacks qui occupe toute la fenêtre (993 x 743 par défaut et
+au minimum, affichée « 60 % », puis 75 % et 100 % plus grandes), écran sur presque toute la façade, 4 footswitchs (celui d'Echoflex) surmontés de leur lettre A-D rétroéclairée.
 
 ## Ce que fait Octopus
 - **L'écran montre la chaîne de la piste** (tous les effets sauf Octopus), en blocs colorés par famille
-  (accordeur, ampli, baffle, drive, dynamique, EQ, wah / filtre, delay, reverb, modulation, pitch, spécial, utilitaire),
+  (accordeur, ampli, baffle, drive, dynamique, EQ, wah / filtre, delay, reverb, modulation, pitch, spécial, utilitaire en blanc),
   reliés de IN à OUT. Ce que l'on fait dans REAPER apparaît aussi à l'écran (relecture ~7 fois par seconde).
 - **Clic** sur un bloc : ON / OFF. **Double-clic** : paramètres à l'écran (8 par page, glisser pour régler, bouton WINDOW
   pour la fenêtre du plugin). **Glisser** : déplacer. **Clic droit** : ouvrir la fenêtre, assigner à un footswitch,
   traitement parallèle, déplacer, insérer avant / après, supprimer. Touche Suppr : supprime le bloc survolé.
 - **Ajouter** (case « + ») : liste des plugins installés fournie par REAPER, recherche et filtres
-  (Studio Wiga, VST3, VST, CLAP, JS, AU ; instruments masqués). L'effet est inséré dans la piste au même moment.
+  (Studio Wiga, VST3, VST, CLAP, JS, AU ; instruments masqués). Plusieurs plugins se choisissent à la suite (numérotés dans
+  l'ordre des clics) puis ADD les insère tous dans la piste, dans cet ordre, en un seul point d'annulation.
+- **Presets de chaque plugin** (bouton PRESETS du panneau des paramètres) : presets d'usine et utilisateur de REAPER, numérotés,
+  chargés d'un clic, flèches précédent / suivant. Pour lire les noms, chaque preset est chargé un instant puis l'état exact
+  du plugin est rétabli (vst_chunk / clap_chunk).
+- **Accordeur** : quand un bloc CHROMA est allumé, Octopus affiche l'écran de CHROMA (même dessin) et fait tourner le même
+  moteur (TunerEngine de CHROMA) sur le son qui le traverse ; mode, La de référence et accordage lus dans CHROMA
+  (paramètres + état du plugin) ; boutons MUTE, MODE, EXIT.
 - **Banks / presets** : 16 banks x 4 presets (1A à 16D). Un preset garde la chaîne complète (plugins, ordre, réglages,
   ON / OFF, assignations STOMP), au format de REAPER. SAVE (jamais d'écrasement sans confirmation), BANKS (charger,
   enregistrer, renommer, copier / coller, effacer, exporter / importer un fichier `.octobank`).
@@ -49,13 +56,12 @@ lourd dans `paint()` (caches du fond, des footswitchs et de l'éclairage des LED
 (redessin non servi en 1,5 s : moteur réappliqué), aucun appel à l'hôte ni allocation dans le thread audio.
 
 ## Visuel
-`python3 tools/make_art.py` génère `background.png` (boîtier graphite brossé, lunette et vitre, logo Studio Wiga,
-jacks du kit, IN / OUT le long des tranches), `fs_off.png` / `fs_on.png` (footswitch d'Echoflex, photo réelle détourée,
+`python3 tools/make_art.py` génère `background.png` (boîtier graphite brossé sans jacks, lunette et vitre, logo Studio Wiga), `fs_off.png` / `fs_on.png` (footswitch d'Echoflex, photo réelle détourée,
 ombres selon la lumière en haut à gauche). Positions communes : `Layout.h`.
 
 ## Build et vérifications
 - GitHub Actions (`.github/workflows/build.yml`) : artefacts `Octopus-VST3-Windows` et `Octopus-macOS-VST3`, et job `tests`.
-- `tools/reaper_sim` : le pont REAPER testé contre une API de REAPER simulée (états de piste au format RPP) : 30 tests
+- `tools/reaper_sim` : le pont REAPER testé contre une API de REAPER simulée (états de piste au format RPP) : 34 tests
   (presets, rappel partiel, Octopus au milieu de la chaîne, effets d'entrée, plugin manquant, deux Octopus...).
 - `tools/render` : fenêtre compilée sous Linux sur une chaîne simulée, tests du moteur et captures (`design/renders/`).
 - `tools/host_check` : charge le VST3 compilé comme un hôte (paramètres, son inchangé, état, fenêtre).
@@ -67,3 +73,5 @@ v1.0.3 : lettres moins lumineuses ; seul le tracé de la lettre s'allume (plus d
 v1.0.4 : lettres A-D un peu plus lumineuses.
 v1.0.5 : très léger halo autour des lettres allumées.
 v1.0.6 : halo des lettres allumées accentué (dégradé progressif qui épouse la lettre).
+v1.1.0 : taille par défaut = ancienne taille 100 % (affichée 60 %), 75 % et 100 % plus grands ; jacks retirés et pédale agrandie dans la fenêtre ;
+  accordeur CHROMA dans Octopus ; ajout de plusieurs effets d'un coup ; presets usine / utilisateur de chaque plugin ; famille utilitaire en blanc.

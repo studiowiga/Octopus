@@ -19,7 +19,12 @@ struct FakeFx
     std::vector<double> params { 0.5, 0.5, 0.5 };
     const double* token = nullptr;            // != nullptr : c'est un Octopus (paramètre 0 = jeton)
     int serial = 0;                           // identité de l'instance (pour vérifier qu'elle n'est pas recréée)
+    int presetIdx = -1;                       // preset affiché par REAPER (-1 = réglages modifiés)
 };
+// presets de chaque plugin : usine (programmes) puis utilisateur (fichier .ini)
+static const juce::StringArray kFactoryPresets { "Default", "Bright", "Dark" };
+static const juce::StringArray kUserPresets { "My lead" };
+static juce::File gUserIni;
 struct FakeTrack { String name; std::vector<FakeFx> fx, rec; };
 
 static std::vector<std::unique_ptr<FakeTrack>> gTracks;
@@ -196,6 +201,57 @@ namespace api
         return true;
     }
     const char* GetAppVersion() { return "7.42/linux-x86_64"; }
+
+    // ---- presets
+    static double presetValue (int idx, int p) { return 0.1 + 0.2 * idx + 0.05 * p; }
+    int TrackFX_GetPresetIndex (void* t, int fx, int* n) { auto* f = fxAt (t, fx); if (n) *n = f && ! f->token ? kFactoryPresets.size() + kUserPresets.size() : 0; return f ? f->presetIdx : -1; }
+    bool TrackFX_SetPresetByIndex (void* t, int fx, int idx)
+    {
+        auto* f = fxAt (t, fx);
+        if (! f || f->token || idx < 0 || idx >= kFactoryPresets.size() + kUserPresets.size()) return false;
+        f->presetIdx = idx;
+        for (size_t p = 0; p < f->params.size(); ++p) f->params[p] = presetValue (idx, (int) p);
+        return true;
+    }
+    static String nameOf (int idx) { return idx < kFactoryPresets.size() ? kFactoryPresets[idx] : kUserPresets[idx - kFactoryPresets.size()]; }
+    bool TrackFX_GetPreset (void* t, int fx, char* b, int sz) { auto* f = fxAt (t, fx); if (! f) return false; copyOut (f->presetIdx >= 0 ? nameOf (f->presetIdx) : String(), b, sz); return f->presetIdx >= 0; }
+    bool TrackFX_SetPreset (void* t, int fx, const char* name)
+    {
+        for (int k = 0; k < kFactoryPresets.size() + kUserPresets.size(); ++k) if (nameOf (k) == String (name)) return TrackFX_SetPresetByIndex (t, fx, k);
+        return false;
+    }
+    bool TrackFX_NavigatePresets (void* t, int fx, int move)
+    {
+        auto* f = fxAt (t, fx); const int n = kFactoryPresets.size() + kUserPresets.size();
+        return f && TrackFX_SetPresetByIndex (t, fx, ((f->presetIdx < 0 ? 0 : f->presetIdx) + move + n) % n);
+    }
+    void TrackFX_GetUserPresetFilename (void*, int, char* b, int sz) { copyOut (gUserIni.getFullPathName(), b, sz); }
+    // état exact d'un plugin (vst_chunk) : réglages + preset affiché
+    String chunkOf (const FakeFx& f) { String p; for (auto v : f.params) p << String (v, 9) << ","; return juce::Base64::toBase64 (f.state + "|" + p + "|" + String (f.presetIdx)); }
+}
+
+namespace api
+{
+    bool TrackFX_GetNamedConfigParm2 (void* t, int fx, const char* p, char* b, int sz)
+    {
+        auto* f = fxAt (t, fx); if (! f) return false;
+        if (String (p) == "vst_chunk") { copyOut (chunkOf (*f), b, sz); return true; }
+        return TrackFX_GetNamedConfigParm (t, fx, p, b, sz);
+    }
+    bool TrackFX_SetNamedConfigParm2 (void* t, int fx, const char* p, const char* v)
+    {
+        auto* f = fxAt (t, fx); if (! f) return false;
+        if (String (p) == "vst_chunk")
+        {
+            juce::MemoryOutputStream mo; juce::Base64::convertFromBase64 (mo, String (v));
+            auto parts = juce::StringArray::fromTokens (mo.toString(), "|", "");
+            f->params.clear();
+            for (auto& x : juce::StringArray::fromTokens (parts[1], ",", "")) if (x.isNotEmpty()) f->params.push_back (x.getDoubleValue());
+            f->presetIdx = parts[2].getIntValue();
+            return true;
+        }
+        return TrackFX_SetNamedConfigParm (t, fx, p, v);
+    }
 }
 
 // ------------------------------------------------------------------ IReaperHostApplication simulée (même disposition que le SDK)
@@ -206,7 +262,9 @@ public:
     {
         static std::map<std::string, void*> m {
             #define F(x) { #x, (void*) &api::x }
-            F(TrackFX_GetCount), F(TrackFX_GetRecCount), F(TrackFX_GetFXName), F(TrackFX_GetNamedConfigParm), F(TrackFX_SetNamedConfigParm),
+            { "TrackFX_GetNamedConfigParm", (void*) &api::TrackFX_GetNamedConfigParm2 }, { "TrackFX_SetNamedConfigParm", (void*) &api::TrackFX_SetNamedConfigParm2 },
+            F(TrackFX_GetPresetIndex), F(TrackFX_SetPresetByIndex), F(TrackFX_GetPreset), F(TrackFX_SetPreset), F(TrackFX_NavigatePresets), F(TrackFX_GetUserPresetFilename),
+            F(TrackFX_GetCount), F(TrackFX_GetRecCount), F(TrackFX_GetFXName),
             F(TrackFX_GetEnabled), F(TrackFX_SetEnabled), F(TrackFX_GetOffline), F(TrackFX_SetOffline), F(TrackFX_GetOpen), F(TrackFX_GetFXGUID),
             F(guidToString), F(TrackFX_GetNumParams), F(TrackFX_GetParamName), F(TrackFX_GetFormattedParamValue), F(TrackFX_GetParamNormalized),
             F(TrackFX_SetParamNormalized), F(TrackFX_AddByName), F(TrackFX_Delete), F(TrackFX_CopyToTrack), F(TrackFX_Show), F(GetTrackName),
@@ -366,6 +424,30 @@ int main()
         eng.toggle (eng.blocks()[0]);
         eng.load (5);
         check (tr.rec.size() == 2 && tr.rec[0].enabled && tr.rec[1].token != nullptr && tr.fx.size() == 3, "preset dans les effets d'entrée (chaîne normale intacte)");
+    }
+
+    // ---- presets d'un plugin (liste usine + utilisateur, état exact rétabli après la lecture des noms)
+    {
+        tr.fx.clear(); tr.rec.clear();
+        auto o = makeFx ("VST3: Octopus (Studio Wiga)"); o.token = &token; tr.fx.push_back (o);
+        gInstalled.addIfNotAlreadyThere ("VST3: Holyverb (Studio Wiga)");
+        eng.refreshNow();
+        juce::Array<InstalledFx> several;
+        for (auto* n : { "VST3: Holyverb (Studio Wiga)", "VST3: Inexistant (X)", "VST3: ReaEQ (Cockos)", "VST3: Doorn (Studio Wiga)" }) several.add ({ n, "" });
+        eng.addFxList (several, 0);
+        check (names (tr) == "[OCTO] > Holyverb > ReaEQ > Doorn" && gUndoOpen == 0, "ajout de plusieurs effets d'un coup, dans l'ordre (le plugin absent est signalé) : " + names (tr));
+        gUserIni = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("vst3-Holyverb.ini");
+        gUserIni.replaceWithText ("[General]\nNbPresets=1\n\n[Preset0]\nData=00\nName=My lead\nLen=1\n");
+        auto& holy = tr.fx[1];
+        holy.params = { 0.33, 0.44, 0.55 }; holy.presetIdx = -1;                 // réglages modifiés à la main
+        const auto pr = bridge.presets (eng.blocks()[0], true);
+        check (pr.names.joinIntoString (",") == "Default,Bright,Dark,My lead" && ! pr.user[0] && pr.user[3], "noms des presets lus (usine + utilisateur) : " + pr.names.joinIntoString (", "));
+        check (std::abs (holy.params[0] - 0.33) < 1e-9 && std::abs (holy.params[2] - 0.55) < 1e-9 && holy.presetIdx == -1, "réglages du plugin rétablis exactement après la lecture des noms");
+        bridge.loadPreset (eng.blocks()[0], 2, "Dark");
+        check (holy.presetIdx == 2 && std::abs (holy.params[0] - api::presetValue (2, 0)) < 1e-9 && bridge.presetName (eng.blocks()[0]) == "Dark", "preset « Dark » chargé");
+        bridge.stepPreset (eng.blocks()[0], 1);
+        check (bridge.presetName (eng.blocks()[0]) == "My lead", "preset suivant : My lead");
+        gUserIni.deleteFile();
     }
 
     // la piste disparaît (supprimée) : plus prêt, pas de plantage

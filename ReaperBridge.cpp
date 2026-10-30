@@ -78,6 +78,12 @@ struct ReaperBridge::Api
     void  (*DeleteTrack) (void* track) = nullptr;
     void* (*GetTrack) (void* proj, int idx) = nullptr;
     int   (*CountTracks) (void* proj) = nullptr;
+    int   (*TrackFX_GetPresetIndex) (void* track, int fx, int* numberOfPresetsOut) = nullptr;
+    bool  (*TrackFX_GetPreset) (void* track, int fx, char* buf, int sz) = nullptr;
+    bool  (*TrackFX_SetPresetByIndex) (void* track, int fx, int idx) = nullptr;
+    bool  (*TrackFX_SetPreset) (void* track, int fx, const char* name) = nullptr;
+    bool  (*TrackFX_NavigatePresets) (void* track, int fx, int move) = nullptr;
+    void  (*TrackFX_GetUserPresetFilename) (void* track, int fx, char* buf, int sz) = nullptr;
     bool  (*EnumInstalledFX) (int index, const char** nameOut, const char** identOut) = nullptr;
     const char* (*GetAppVersion)() = nullptr;
 
@@ -157,6 +163,12 @@ void ReaperBridge::resolve()
     getApi (reaper, a.DeleteTrack, "DeleteTrack");
     getApi (reaper, a.GetTrack, "GetTrack");
     getApi (reaper, a.CountTracks, "CountTracks");
+    getApi (reaper, a.TrackFX_GetPresetIndex, "TrackFX_GetPresetIndex");
+    getApi (reaper, a.TrackFX_GetPreset, "TrackFX_GetPreset");
+    getApi (reaper, a.TrackFX_SetPresetByIndex, "TrackFX_SetPresetByIndex");
+    getApi (reaper, a.TrackFX_SetPreset, "TrackFX_SetPreset");
+    getApi (reaper, a.TrackFX_NavigatePresets, "TrackFX_NavigatePresets");
+    getApi (reaper, a.TrackFX_GetUserPresetFilename, "TrackFX_GetUserPresetFilename");
     getApi (reaper, a.EnumInstalledFX, "EnumInstalledFX");
     getApi (reaper, a.GetAppVersion, "GetAppVersion");
 }
@@ -518,6 +530,114 @@ bool ReaperBridge::insertEntries (const juce::Array<EntryInsert>& items, juce::S
     if (api->PreventUIRefresh != nullptr) api->PreventUIRefresh (-1);
     locateSelf();
     return ok;
+}
+
+// ------------------------------------------------------------------ presets d'un plugin
+bool ReaperBridge::namedBig (int raw, const char* key, juce::String& out)
+{
+    if (api->TrackFX_GetNamedConfigParm == nullptr) return false;
+    for (int size = 1 << 16; size <= (1 << 27); size <<= 2)
+    {
+        juce::HeapBlock<char> buf ((size_t) size, true);
+        if (! api->TrackFX_GetNamedConfigParm (track, raw, key, buf.get(), size)) return false;
+        const auto len = strnlen (buf.get(), (size_t) size);
+        if ((int) len < size - 1) { out = juce::String (juce::CharPointer_UTF8 (buf.get()), len); return out.isNotEmpty(); }
+    }
+    return false;
+}
+
+static juce::String cleanPresetName (juce::String n)
+{
+    n = n.trim();
+    if (n.containsChar ('/') || n.containsChar ('\\'))                      // preset d'usine VST3 : chemin du fichier .vstpreset
+        n = n.fromLastOccurrenceOf ("/", false, false).fromLastOccurrenceOf ("\\", false, false).upToLastOccurrenceOf (".", false, false);
+    return n;
+}
+
+// REAPER donne le nombre de presets et charge un preset par son index, mais pas la liste des noms.
+// Pour l'afficher, chaque preset est chargé un instant pour lire son nom, puis l'état exact du plugin
+// (vst_chunk / clap_chunk) et le preset affiché sont rétablis. Fait seulement à l'ouverture de la liste.
+PluginPresets ReaperBridge::presets (int i, bool probe)
+{
+    PluginPresets out;
+    if (! validIndex (i) || i == selfRaw || api->TrackFX_GetPresetIndex == nullptr) return out;
+    const int raw = i | chainFlag;
+    int n = 0;
+    out.current = api->TrackFX_GetPresetIndex (track, raw, &n);
+    out.count = juce::jmax (0, n);
+    if (! probe || out.count == 0) return out;
+
+    juce::StringArray userNames;                                            // presets utilisateur : fichier .ini de REAPER
+    if (api->TrackFX_GetUserPresetFilename != nullptr)
+    {
+        char fn[4096] = {};
+        api->TrackFX_GetUserPresetFilename (track, raw, fn, (int) sizeof (fn));
+        const juce::File f (utf8 (fn));
+        if (fn[0] != 0 && f.existsAsFile())
+            for (auto& l : juce::StringArray::fromLines (f.loadFileAsString()))
+                if (l.trim().startsWithIgnoreCase ("Name="))
+                    userNames.add (l.fromFirstOccurrenceOf ("=", false, false).trim());
+    }
+
+    juce::String saved, key;
+    for (auto* k : { "vst_chunk", "clap_chunk" })
+        if (namedBig (raw, k, saved)) { key = k; break; }
+    const bool canRestore = key.isNotEmpty() && api->TrackFX_SetNamedConfigParm != nullptr;
+    if (! canRestore || api->TrackFX_SetPresetByIndex == nullptr || api->TrackFX_GetPreset == nullptr)
+    {
+        // sans moyen de rétablir l'état exact (JS...) : seulement les presets utilisateur, chargés par leur nom
+        out.byName = true;
+        for (auto& u : userNames) { out.names.add (u); out.user.add (true); }
+        return out;
+    }
+
+    if (api->PreventUIRefresh != nullptr) api->PreventUIRefresh (1);
+    const int maxN = juce::jmin (out.count, 512);
+    for (int k = 0; k < maxN; ++k)
+    {
+        api->TrackFX_SetPresetByIndex (track, raw, k);
+        char nm[2048] = {};
+        api->TrackFX_GetPreset (track, raw, nm, (int) sizeof (nm));
+        auto name = cleanPresetName (utf8 (nm));
+        if (name.isEmpty()) name = "Preset " + juce::String (k + 1);
+        out.names.add (name);
+        out.user.add (userNames.contains (name));
+    }
+    if (out.current >= 0) api->TrackFX_SetPresetByIndex (track, raw, out.current);
+    api->TrackFX_SetNamedConfigParm (track, raw, key.toRawUTF8(), saved.toRawUTF8());
+    if (api->PreventUIRefresh != nullptr) api->PreventUIRefresh (-1);
+    return out;
+}
+
+juce::String ReaperBridge::presetName (int i)
+{
+    if (! validIndex (i) || api->TrackFX_GetPreset == nullptr) return {};
+    char nm[2048] = {};
+    api->TrackFX_GetPreset (track, i | chainFlag, nm, (int) sizeof (nm));
+    return cleanPresetName (utf8 (nm));
+}
+
+bool ReaperBridge::loadPreset (int i, int idx, const juce::String& name)
+{
+    if (! validIndex (i) || i == selfRaw) return false;
+    if (idx >= 0 && api->TrackFX_SetPresetByIndex != nullptr) return api->TrackFX_SetPresetByIndex (track, i | chainFlag, idx);
+    if (name.isNotEmpty() && api->TrackFX_SetPreset != nullptr) return api->TrackFX_SetPreset (track, i | chainFlag, name.toRawUTF8());
+    return false;
+}
+
+bool ReaperBridge::stepPreset (int i, int dir)
+{
+    if (! validIndex (i) || i == selfRaw || api->TrackFX_NavigatePresets == nullptr) return false;
+    return api->TrackFX_NavigatePresets (track, i | chainFlag, dir);
+}
+
+juce::String ReaperBridge::fxChunk (int i)
+{
+    juce::StringArray entries; int sp = 0; juce::String err;
+    if (! validIndex (i) || ! capture (entries, sp, err)) return {};
+    const int e = i < sp ? i : i - 1;                     // capture() saute Octopus
+    if (i == selfRaw || ! juce::isPositiveAndBelow (e, entries.size())) return {};
+    return entries[e];
 }
 
 // ------------------------------------------------------------------ effets installés

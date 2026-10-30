@@ -165,6 +165,45 @@ bool OctopusEngine::addFx (const InstalledFx& f, int blockPos)
     return true;
 }
 
+int OctopusEngine::addFxList (const juce::Array<InstalledFx>& list, int blockPos)
+{
+    if (! ready) { say (status); return 0; }
+    if (list.size() == 1) return addFx (list.getReference (0), blockPos) ? 1 : 0;
+    int at = chainIndexForBlock (blockPos), added = 0;
+    juce::StringArray failed;
+    host.beginUndo();
+    for (auto& f : list)
+    {
+        int pos = host.add (f.name, at);
+        if (pos < 0 && f.name.startsWith ("JS") && f.ident.isNotEmpty()) pos = host.add ("JS:" + f.ident, at);
+        if (pos < 0) { failed.add (FxCat::shortName (f.name)); continue; }
+        at = pos + 1;                                             // le suivant juste après, dans l'ordre choisi
+        ++added;
+    }
+    host.endUndo ("add " + juce::String (added) + " effects");
+    refreshNow();
+    if (failed.isEmpty()) say ("Added " + juce::String (added) + " effects");
+    else say ("Added " + juce::String (added) + ", REAPER could not load " + failed.joinIntoString (", "), 4500.0);
+    return added;
+}
+
+bool OctopusEngine::isChroma (const FxInfo& f)
+{
+    const auto n = f.original.isNotEmpty() ? f.original : f.name;
+    return (n.containsIgnoreCase ("CHROMA") || n.containsIgnoreCase ("Tuna")) && n.containsIgnoreCase ("Studio Wiga");
+}
+
+int OctopusEngine::chromaIndex() const
+{
+    if (! ready) return -1;
+    for (int i = 0; i < fx.size(); ++i)
+    {
+        const auto& f = fx.getReference (i);
+        if (! f.isSelf && f.enabled && ! f.offline && isChroma (f)) return i;
+    }
+    return -1;
+}
+
 void OctopusEngine::openWindow (int i, bool show)
 {
     if (ready && juce::isPositiveAndBelow (i, fx.size())) { host.showWindow (i, show); refreshNow(); }

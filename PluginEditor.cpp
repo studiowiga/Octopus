@@ -50,6 +50,7 @@ namespace
     {
         bNone = 0, bBankPrev, bBankNext, bModePreset, bModeStomp, bSave, bBanks, bClose,
         bParamOnOff, bParamWindow, bPagePrev, bPageNext, bExport, bImport, bPc, bReload,
+        bAddPicked, bClearPicked, bPresets, bPresetRescan, bTunerMute, bTunerMode, bTunerExit,
         bChip = 100,                     // + catégorie du navigateur
         bBank = 200,                     // + numéro de bank
         bCard = 300                      // + slot * 10 + action
@@ -76,6 +77,7 @@ public:
         tfMedium  = Typeface::createSystemTypefaceFor (BinaryData::PoppinsMedium_ttf, BinaryData::PoppinsMedium_ttfSize);
         tfBold    = Typeface::createSystemTypefaceFor (BinaryData::PoppinsBold_ttf, BinaryData::PoppinsBold_ttfSize);
         tfRegular = Typeface::createSystemTypefaceFor (BinaryData::PoppinsRegular_ttf, BinaryData::PoppinsRegular_ttfSize);
+        tfMono    = Typeface::createSystemTypefaceFor (BinaryData::IBMPlexMonoSemiBold_ttf, BinaryData::IBMPlexMonoSemiBold_ttfSize);
         for (auto& l : ledLevel) l = 0.0f;
 
         styleEditor (search, "Search plug-ins...");
@@ -83,8 +85,9 @@ public:
         search.onEscapeKey = [this] { closeOverlay(); };
         search.onReturnKey = [this]
         {
+            if (picked.size() > 0) { addPicked(); return; }
             const auto items = filtered();
-            if (items.size() > 0) addFromBrowser (items.getReference (0));
+            if (items.size() > 0) { picked.add (items.getReference (0)); addPicked(); }
         };
         addChildComponent (search);
 
@@ -107,6 +110,7 @@ public:
         overlay = Overlay::browser;
         insertPos = blockPos;
         listScroll = 0;
+        picked.clear();
         eng.installedList();
         search.setText ({}, dontSendNotification);
         search.setVisible (true);
@@ -120,6 +124,7 @@ public:
         overlay = Overlay::params;
         paramGuid = eng.chain().getReference (chainIndex).guid;
         paramPage = 0;
+        presetMode = false;
         hideEditors();
         pollParams (true);
         askRepaint (screenPx());
@@ -137,6 +142,8 @@ public:
         askRepaint (screenPx());
     }
     void setChip (int c) { chip = jlimit (0, kNumChips - 1, c); listScroll = 0; askRepaint (screenPx()); }
+    void pickVisible (int v) { const auto items = filtered(); if (isPositiveAndBelow (v, items.size())) togglePick (items.getReference (v)); }
+    void showPresets() { openPresets (true); }
     void setSearch (const String& t) { search.setText (t, sendNotification); }
     void simulateHover (Point<float> unitPos) { updateHover (unitPos); }
 
@@ -229,6 +236,17 @@ private:
     Array<ParamView> params;
     int paramCount = 0, pollTick = 0;
     String drawnParamSig;
+    // presets du plugin (dans le panneau des paramètres)
+    bool presetMode = false;
+    PluginPresets plist;
+    String plistGuid;
+    int presetScroll = 0;
+    // navigateur : effets choisis (dans l'ordre), ajoutés en une fois
+    Array<InstalledFx> picked;
+    // accordeur (CHROMA)
+    Typeface::Ptr tfMono;
+    float strobePhase = 0.0f;
+    bool drawnTuner = false;
     // banks
     int renameSlot = -1;
     std::unique_ptr<FileChooser> chooser;
@@ -237,10 +255,11 @@ private:
     Rectangle<float> r (Rectangle<float> d) const { return d * s; }
     Point<float> r (Point<float> d) const { return d * s; }
     // écran : repère local -> pixels de la fenêtre
-    Rectangle<float> S (Rectangle<float> local) const { return (local + L::glass.getPosition()) * s; }
-    Point<float> S (Point<float> local) const { return (local + L::glass.getPosition()) * s; }
-    float S (float v) const { return v * s; }
-    Point<float> toLocal (Point<float> px) const { return px / s - L::glass.getPosition(); }
+    // écran : repère local 1064 x 624, agrandi de kG dans la vitre
+    Rectangle<float> S (Rectangle<float> local) const { return (local * L::kG + L::glass.getPosition()) * s; }
+    Point<float> S (Point<float> local) const { return (local * L::kG + L::glass.getPosition()) * s; }
+    float S (float v) const { return v * L::kG * s; }
+    Point<float> toLocal (Point<float> px) const { return (px / s - L::glass.getPosition()) / L::kG; }
     Rectangle<int> screenPx() const { return r (L::glass).toNearestInt().expanded (2); }
 
     Point<float> ledPos (int f) const { return { L::fsX[f] + L::ledDx, L::ledY }; }
@@ -258,7 +277,7 @@ private:
         repaint (area);
     }
 
-    Font font (const Typeface::Ptr& tf, float unitsHigh) const { return Font (FontOptions (tf).withHeight (unitsHigh * s)); }
+    Font font (const Typeface::Ptr& tf, float unitsHigh) const { return Font (FontOptions (tf).withHeight (unitsHigh * L::kG * s)); }   // texte de l'écran
 
     void styleEditor (TextEditor& ed, const String& hint)
     {
@@ -278,12 +297,12 @@ private:
         const float h = 18.0f * s;
         search.setBounds (S (Rectangle<float> (16.0f, 130.0f, 330.0f, 38.0f)).toNearestInt());
         search.setFont (font (tfMedium, 18.0f));
-        search.setIndents (roundToInt (10.0f * s), jmax (0, roundToInt ((38.0f * s - h) * 0.5f) - 1));
+        search.setIndents (roundToInt (S (10.0f)), jmax (0, roundToInt ((S (38.0f) - h) * 0.5f) - 1));
         if (renameSlot >= 0)
         {
             renameEd.setBounds (S (cardRect (renameSlot).withTrimmedLeft (80.0f).withWidth (250.0f).reduced (0.0f, 14.0f)).toNearestInt());
             renameEd.setFont (font (tfMedium, 18.0f));
-            renameEd.setIndents (roundToInt (8.0f * s), jmax (0, roundToInt ((36.0f * s - h) * 0.5f) - 1));
+            renameEd.setIndents (roundToInt (S (8.0f)), jmax (0, roundToInt ((S (36.0f) - h) * 0.5f) - 1));
         }
     }
 
@@ -350,7 +369,7 @@ private:
     void drawLetter (Graphics& g, int f, Point<float> c0, float lvl, Colour col)
     {
         GlyphArrangement ga;
-        ga.addLineOfText (font (tfBold, 38.0f), fsLetter (f), 0.0f, 0.0f);
+        ga.addLineOfText (Font (FontOptions (tfBold).withHeight (38.0f * s)), fsLetter (f), 0.0f, 0.0f);
         Path p;
         ga.createPath (p);
         const auto c = r (c0);
@@ -665,6 +684,8 @@ private:
                 v.push_back ({ { x, 130.0f, w, 38.0f }, bChip + c, kChips[c], chip == c });
                 x += w + 6.0f;
             }
+            v.push_back ({ { 702.0f, 84.0f, 84.0f, 36.0f }, bClearPicked, "CLEAR", false, picked.size() > 0 });
+            v.push_back ({ { 792.0f, 84.0f, 112.0f, 36.0f }, bAddPicked, picked.isEmpty() ? String ("ADD") : "ADD " + String (picked.size()), picked.size() > 0, picked.size() > 0 });
             v.push_back ({ { 910.0f, 84.0f, 90.0f, 36.0f }, bReload, "RESCAN" });
         }
         else if (overlay == Overlay::params)
@@ -672,10 +693,21 @@ private:
             const auto* f = paramFx();
             const bool on = f != nullptr && f->enabled;
             const int pages = jmax (1, (paramCount + 7) / 8);
+            v.push_back ({ { 520.0f, 84.0f, 112.0f, 36.0f }, bPresets, "PRESETS", presetMode });
             v.push_back ({ { 640.0f, 84.0f, 72.0f, 36.0f }, bParamOnOff, on ? "ON" : "OFF", on });
             v.push_back ({ { 720.0f, 84.0f, 108.0f, 36.0f }, bParamWindow, "WINDOW", f != nullptr && f->open });
-            v.push_back ({ { 838.0f, 84.0f, 34.0f, 36.0f }, bPagePrev, CharPointer_UTF8 ("\xe2\x97\x80"), false, paramPage > 0 });
-            v.push_back ({ { 964.0f, 84.0f, 34.0f, 36.0f }, bPageNext, CharPointer_UTF8 ("\xe2\x96\xb6"), false, paramPage < pages - 1 });
+            if (presetMode)
+            {
+                // flèches : preset précédent / suivant (comme les flèches du menu de presets de REAPER)
+                v.push_back ({ { 838.0f, 84.0f, 34.0f, 36.0f }, bPagePrev, CharPointer_UTF8 ("\xe2\x97\x80"), false, plist.count > 1 });
+                v.push_back ({ { 964.0f, 84.0f, 34.0f, 36.0f }, bPageNext, CharPointer_UTF8 ("\xe2\x96\xb6"), false, plist.count > 1 });
+                v.push_back ({ { 910.0f, 132.0f, 138.0f, 36.0f }, bPresetRescan, "RELOAD LIST" });
+            }
+            else
+            {
+                v.push_back ({ { 838.0f, 84.0f, 34.0f, 36.0f }, bPagePrev, CharPointer_UTF8 ("\xe2\x97\x80"), false, paramPage > 0 });
+                v.push_back ({ { 964.0f, 84.0f, 34.0f, 36.0f }, bPageNext, CharPointer_UTF8 ("\xe2\x96\xb6"), false, paramPage < pages - 1 });
+            }
         }
         else if (overlay == Overlay::banks)
         {
@@ -707,6 +739,11 @@ private:
 
     int buttonAt (Point<float> p) const
     {
+        if (tunerShown())
+        {
+            for (auto& b : tunerButtons()) if (b.r.contains (p)) return b.id;
+            return bNone;
+        }
         if (overlay != Overlay::none)
             for (auto& b : overlayButtons()) if (b.enabled && b.r.contains (p)) return b.id;
         for (auto& b : headerButtons()) if (b.enabled && b.r.contains (p)) return b.id;
@@ -736,15 +773,19 @@ private:
         g.setGradientFill (ColourGradient (Colour (0xff0d1015), glass.getX(), glass.getY(), Colour (0xff07080b), glass.getX(), glass.getBottom(), false));
         g.fillRect (glass);
 
-        drawHeader (g);
-        if (! eng.isReady())
-            drawNotReady (g);
+        if (tunerShown()) drawTuner (g);
         else
         {
-            drawGrid (g);
-            drawFooter (g);
+            drawHeader (g);
+            if (! eng.isReady())
+                drawNotReady (g);
+            else
+            {
+                drawGrid (g);
+                drawFooter (g);
+            }
+            if (overlay != Overlay::none) drawOverlay (g);
         }
-        if (overlay != Overlay::none) drawOverlay (g);
 
         // vitre : léger reflet en biais (lumière en haut à gauche) + assombrissement des bords
         Path gloss;
@@ -854,7 +895,7 @@ private:
 
     Rectangle<float> footerCell (int f) const
     {
-        return Rectangle<float> (kFooterW, kFooterH).withCentre ({ L::fsX[f] - L::glass.getX(), kFooterY + kFooterH * 0.5f });
+        return Rectangle<float> (kFooterW, kFooterH).withCentre ({ (L::fsX[f] - L::glass.getX()) / L::kG, kFooterY + kFooterH * 0.5f });
     }
     int footerAt (Point<float> p) const
     {
@@ -879,7 +920,7 @@ private:
             g.setColour (kDim);
             const int n = eng.blocks().size();
             const String where = insertPos >= n ? "at the end of the chain" : "before " + FxCat::shortName (eng.chain().getReference (eng.blocks()[insertPos]).name);
-            g.drawText (where, S (Rectangle<float> (236.0f, 84.0f, 660.0f, 36.0f)), Justification::centredLeft, true);
+            g.drawText (where + "  -  click to select (several in a row), ADD", S (Rectangle<float> (236.0f, 84.0f, 460.0f, 36.0f)), Justification::centredLeft, true);
             drawBrowserList (g);
         }
         else if (overlay == Overlay::params) drawParams (g);
@@ -938,15 +979,26 @@ private:
             const auto& f = items.getReference (i);
             const auto ir = S (itemRect (v));
             const bool hov = hoverItem == v;
-            g.setColour (hov ? kScrPanel2.brighter (0.12f) : kScrPanel);
+            const int order = pickedIndex (f);
+            g.setColour (order >= 0 ? kAccent.withAlpha (0.20f) : (hov ? kScrPanel2.brighter (0.12f) : kScrPanel));
             g.fillRoundedRectangle (ir, S (6.0f));
+            if (order >= 0)
+            {
+                g.setColour (kAccent);
+                g.drawRoundedRectangle (ir.reduced (S (0.6f)), S (6.0f), S (1.4f));
+                const auto badge = Rectangle<float> (S (24.0f), S (24.0f)).withCentre ({ ir.getRight() - S (186.0f), ir.getCentreY() });
+                g.fillEllipse (badge);
+                g.setFont (font (tfBold, 14.0f));
+                g.setColour (kScrBg);
+                g.drawText (String (order + 1), badge, Justification::centred);
+            }
             const int kind = FxCat::classify (f.name);
             g.setColour (FxCat::colour (kind));
             g.fillRoundedRectangle (ir.withWidth (S (5.0f)), S (2.5f));
             FxCat::drawIcon (g, kind, Rectangle<float> (S (22.0f), S (22.0f)).withCentre ({ ir.getX() + S (24.0f), ir.getCentreY() }), FxCat::colour (kind).brighter (0.3f), S (1.8f));
             g.setFont (font (tfMedium, 17.0f));
             g.setColour (kText);
-            g.drawText (FxCat::shortName (f.name), ir.withTrimmedLeft (S (44.0f)).withTrimmedRight (S (170.0f)), Justification::centredLeft, true);
+            g.drawText (FxCat::shortName (f.name), ir.withTrimmedLeft (S (44.0f)).withTrimmedRight (S (204.0f)), Justification::centredLeft, true);
             g.setFont (font (tfRegular, 13.5f));
             g.setColour (kDim);
             const auto vend = FxCat::vendor (f.name);
@@ -967,6 +1019,27 @@ private:
         const int at = insertPos;
         closeOverlay();
         eng.addFx (f, at);
+    }
+
+    int pickedIndex (const InstalledFx& f) const
+    {
+        for (int k = 0; k < picked.size(); ++k) if (picked.getReference (k).name == f.name) return k;
+        return -1;
+    }
+    void togglePick (const InstalledFx& f)
+    {
+        const int k = pickedIndex (f);
+        if (k >= 0) picked.remove (k); else picked.add (f);
+        askRepaint (screenPx());
+    }
+    // tous les effets choisis, dans l'ordre, à la suite, en une fois
+    void addPicked()
+    {
+        if (picked.isEmpty()) return;
+        const auto list = picked;
+        const int at = insertPos;
+        closeOverlay();
+        eng.addFxList (list, at);
     }
 
     // paramètres du bloc choisi
@@ -1016,7 +1089,8 @@ private:
         FxCat::drawIcon (g, kind, S (Rectangle<float> (16.0f, 86.0f, 32.0f, 32.0f)), FxCat::colour (kind).brighter (0.3f), S (2.0f));
         g.setFont (font (tfBold, 21.0f));
         g.setColour (kText);
-        g.drawText (FxCat::shortName (f->name), S (Rectangle<float> (58.0f, 84.0f, 570.0f, 36.0f)), Justification::centredLeft, true);
+        g.drawText (FxCat::shortName (f->name), S (Rectangle<float> (58.0f, 84.0f, 450.0f, 36.0f)), Justification::centredLeft, true);
+        if (presetMode) { drawPresets (g, kind); return; }
         const int pages = jmax (1, (paramCount + 7) / 8);
         g.setFont (font (tfBold, 15.0f));
         g.setColour (kDim);
@@ -1045,6 +1119,104 @@ private:
             g.fillRoundedRectangle (bar, bar.getHeight() * 0.5f);
             g.setColour (col.withAlpha (0.85f));
             g.fillRoundedRectangle (bar.withWidth (jmax (bar.getHeight(), bar.getWidth() * (float) jlimit (0.0, 1.0, pv.value))), bar.getHeight() * 0.5f);
+        }
+    }
+
+    // ---- presets du plugin (usine / utilisateur, ceux de la liste de REAPER)
+    void openPresets (bool reprobe)
+    {
+        const int i = paramFxIndex();
+        if (i < 0) return;
+        presetMode = true;
+        if (reprobe || plistGuid != paramGuid)
+        {
+            MouseCursor::showWaitCursor();
+            plist = eng.chainHost().presets (i, true);
+            MouseCursor::hideWaitCursor();
+            plistGuid = paramGuid;
+            presetScroll = 0;
+        }
+        else plist.current = eng.chainHost().presets (i, false).current;
+        askRepaint (screenPx());
+    }
+
+    void loadPluginPreset (int k)
+    {
+        const int i = paramFxIndex();
+        if (i < 0 || ! isPositiveAndBelow (k, plist.names.size())) return;
+        auto& h = eng.chainHost();
+        h.beginUndo();
+        const bool ok = h.loadPreset (i, plist.byName ? -1 : k, plist.names[k]);
+        h.endUndo ("preset " + plist.names[k]);
+        if (ok) { plist.current = plist.byName ? k : h.presets (i, false).current; eng.say (FxCat::shortName (eng.chain().getReference (i).name) + " : " + plist.names[k]); }
+        else eng.say ("REAPER could not load " + plist.names[k]);
+        pollParams (true);
+        askRepaint (screenPx());
+    }
+
+    void stepPluginPreset (int dir)
+    {
+        const int i = paramFxIndex();
+        if (i < 0) return;
+        auto& h = eng.chainHost();
+        h.beginUndo();
+        h.stepPreset (i, dir);
+        h.endUndo ("preset");
+        plist.current = h.presets (i, false).current;
+        eng.say (FxCat::shortName (eng.chain().getReference (i).name) + " : " + h.presetName (i));
+        pollParams (true);
+        askRepaint (screenPx());
+    }
+
+    void drawPresets (Graphics& g, int kind)
+    {
+        const auto col = FxCat::colour (kind);
+        const int i = paramFxIndex();
+        g.setFont (font (tfBold, 15.0f));
+        g.setColour (kDim);
+        g.drawText (plist.count > 0 ? String (plist.current >= 0 ? plist.current + 1 : 0) + " / " + String (plist.count) : String ("-"),
+                    S (Rectangle<float> (872.0f, 84.0f, 92.0f, 36.0f)), Justification::centred);
+        // preset actif
+        g.setFont (font (tfRegular, 15.0f));
+        g.setColour (kDim);
+        g.drawText ("CURRENT", S (Rectangle<float> (16.0f, 132.0f, 90.0f, 36.0f)), Justification::centredLeft);
+        g.setFont (font (tfMedium, 21.0f));
+        g.setColour (col.brighter (0.4f));
+        const auto curName = i >= 0 ? eng.chainHost().presetName (i) : String();
+        g.drawText (curName.isNotEmpty() ? curName : String ("(modified / no preset)"), S (Rectangle<float> (104.0f, 132.0f, 790.0f, 36.0f)), Justification::centredLeft, true);
+        if (plist.names.isEmpty())
+        {
+            g.setFont (font (tfMedium, 18.0f));
+            g.setColour (kDim);
+            g.drawText (plist.count == 0 ? "This plug-in has no preset in REAPER" : "Preset names not available for this plug-in : use the arrows",
+                        S (Rectangle<float> (16.0f, 260.0f, 1032.0f, 40.0f)), Justification::centred);
+            return;
+        }
+        for (int v = 0; v < kListRows * 2; ++v)
+        {
+            const int k = presetScroll * kListRows + v;
+            if (k >= plist.names.size()) break;
+            const auto ir = S (itemRect (v));
+            const bool cur = ! plist.byName && k == plist.current;
+            g.setColour (cur ? col.withAlpha (0.22f) : (hoverItem == v ? kScrPanel2.brighter (0.12f) : kScrPanel));
+            g.fillRoundedRectangle (ir, S (6.0f));
+            if (cur) { g.setColour (col); g.drawRoundedRectangle (ir.reduced (S (0.6f)), S (6.0f), S (1.4f)); }
+            g.setFont (font (tfRegular, 13.5f));
+            g.setColour (kDim);
+            g.drawText (String (k + 1), ir.withWidth (S (40.0f)), Justification::centred);
+            g.setFont (font (tfMedium, 17.0f));
+            g.setColour (kText);
+            g.drawText (plist.names[k], ir.withTrimmedLeft (S (44.0f)).withTrimmedRight (S (96.0f)), Justification::centredLeft, true);
+            g.setFont (font (tfBold, 12.5f));
+            g.setColour (plist.user[k] ? kAmber : kDim);
+            g.drawText (plist.user[k] ? "USER" : "FACTORY", ir.withTrimmedRight (S (12.0f)).removeFromRight (S (84.0f)), Justification::centredRight);
+        }
+        const int rows = (plist.names.size() + kListRows - 1) / kListRows;
+        if (rows > 2)
+        {
+            g.setFont (font (tfRegular, 14.0f));
+            g.setColour (kDim);
+            g.drawText (String (plist.names.size()) + " presets  -  scroll for more", S (Rectangle<float> (16.0f, 598.0f, 1032.0f, 20.0f)), Justification::centredRight);
         }
     }
 
@@ -1163,6 +1335,286 @@ private:
         });
     }
 
+    // ------------------------------------------------------------ accordeur : l'écran de CHROMA dans Octopus
+    // Quand un bloc CHROMA est allumé, Octopus devient l'accordeur : même moteur (TunerEngine de CHROMA) appliqué au son
+    // qui traverse Octopus, même écran (dessin repris de CHROMA, police IBM Plex Mono), réglages lus dans CHROMA
+    // (mode, La de référence, accordage). À droite : MUTE / MODE (paramètres de CHROMA) et EXIT (éteint le bloc CHROMA).
+    static constexpr float kTW = 828.0f, kTH = 594.5f;              // repère de l'écran de CHROMA
+    bool tunerShown() const { return eng.isReady() && proc.chroma().on; }
+    float tunerScale() const { return kSH / kTH; }
+    Rectangle<float> tunerRect() const { return { 0.0f, 0.0f, kTW * tunerScale(), kSH }; }
+    std::vector<Btn> tunerButtons() const
+    {
+        const float x = tunerRect().getRight() + 16.0f, w = kSW - x - 16.0f;
+        const auto& c = proc.chroma();
+        std::vector<Btn> v;
+        v.push_back ({ { x, 150.0f, w, 96.0f }, bTunerMute, c.muted ? "MUTED" : "MUTE", c.muted });
+        v.push_back ({ { x, 262.0f, w, 96.0f }, bTunerMode, "MODE" });
+        v.push_back ({ { x, 486.0f, w, 112.0f }, bTunerExit, "EXIT" });
+        return v;
+    }
+    Font mono (float h) const { return Font (FontOptions (tfMono).withHeight (h)); }
+
+    struct TC   // couleurs de l'écran de CHROMA
+    {
+        static Colour orange()   { return Colour (0xffff7a3a); }
+        static Colour amber()    { return Colour (0xffffb23a); }
+        static Colour amberDim() { return Colour (0xff3a2808); }
+        static Colour green()    { return Colour (0xff5dff8a); }
+        static Colour greenDim() { return Colour (0xff12351f); }
+        static Colour grey()     { return Colour (0xffc9ced3); }
+    };
+
+    static String sign1 (float v)
+    {
+        const float r = std::round (v * 10.0f) / 10.0f;
+        return (r > 0 ? "+" : (r < 0 ? "-" : "")) + String (std::abs (r), 1);
+    }
+
+    static void segment (Graphics& g, Rectangle<float> r, Colour c, bool lit)
+    {
+        if (lit)
+        {
+            g.setColour (c.withAlpha (0.10f)); g.fillRoundedRectangle (r.expanded (7, 6), 6.0f);
+            g.setColour (c.withAlpha (0.22f)); g.fillRoundedRectangle (r.expanded (3.5f, 3.0f), 4.0f);
+            g.setColour (c); g.fillRoundedRectangle (r, 2.5f);
+            g.setColour (Colours::white.withAlpha (0.35f)); g.fillRoundedRectangle (r.reduced (r.getWidth() * 0.3f, r.getHeight() * 0.2f), 1.5f);
+        }
+        else { g.setColour (c); g.fillRoundedRectangle (r, 2.5f); }
+    }
+
+    void drawTuner (Graphics& g)
+    {
+        const auto& c = proc.chroma();
+        const auto sn = proc.tunerSnapshot();
+        {
+            Graphics::ScopedSaveState ss (g);
+            const auto o = S (tunerRect().getPosition());
+            g.addTransform (AffineTransform::scale (tunerScale() * L::kG * s).translated (o.x, o.y));
+            g.setColour (Colour (0xff050706));
+            g.fillRect (0.0f, 0.0f, kTW, kTH);
+            const bool autoMono = c.mode == 1 && sn.monoOffTuning && ! sn.anyStringActive;
+            tunerHeader (g, sn, c, autoMono);
+            if (c.mode == 0 || autoMono) tunerMono (g, sn);
+            else if (c.mode == 1)        tunerPoly (g, sn);
+            else                         tunerStrobe (g, sn);
+        }
+        // colonne de droite
+        const auto colR = Rectangle<float> (tunerRect().getRight(), 0.0f, kSW - tunerRect().getRight(), kSH);
+        g.setColour (Colour (0xff07090a));
+        g.fillRect (S (colR));
+        g.setColour (TC::amber().withAlpha (0.25f));
+        g.fillRect (S (Rectangle<float> (colR.getX(), 24.0f, 1.5f, kSH - 48.0f)));
+        g.setFont (Font (FontOptions (tfMono).withHeight (S (34.0f))));
+        g.setColour (TC::orange());
+        g.drawText ("TUNER", S (Rectangle<float> (colR.getX(), 30.0f, colR.getWidth(), 44.0f)), Justification::centred);
+        g.setFont (Font (FontOptions (tfMono).withHeight (S (17.0f))));
+        g.setColour (TC::grey().withAlpha (0.7f));
+        g.drawText ("CHROMA", S (Rectangle<float> (colR.getX(), 76.0f, colR.getWidth(), 26.0f)), Justification::centred);
+        for (auto& b : tunerButtons())
+        {
+            const auto rr = S (b.r);
+            const bool hov = hoverBtn == b.id;
+            const bool red = b.id == bTunerMute && b.active;
+            const auto ac = red ? Colour (0xffff2a18) : TC::amber();
+            g.setColour (ac.withAlpha (red ? 0.85f : (hov ? 0.16f : 0.06f)));
+            g.fillRoundedRectangle (rr, S (10.0f));
+            g.setColour (ac.withAlpha (0.65f));
+            g.drawRoundedRectangle (rr.reduced (S (1.0f)), S (10.0f), S (1.6f));
+            g.setFont (Font (FontOptions (tfMono).withHeight (S (30.0f))));
+            g.setColour (red ? Colour (0xff140806) : ac);
+            g.drawText (b.text, rr, Justification::centred);
+            if (b.id == bTunerMode)
+            {
+                static const char* names[3] = { "MONO", "POLY", "STROBE" };
+                g.setFont (Font (FontOptions (tfMono).withHeight (S (16.0f))));
+                g.setColour (TC::grey().withAlpha (0.7f));
+                g.drawText (names[jlimit (0, 2, c.mode)], rr.withTrimmedTop (rr.getHeight() * 0.62f), Justification::centred);
+            }
+        }
+    }
+
+    void tunerHeader (Graphics& g, const tuna::Snapshot& sn, const ChromaState& c, bool autoMono)
+    {
+        static const char* names[3] = { "MONO", "POLY", "STROBE" };
+        g.setFont (mono (42.0f));
+        g.setColour (TC::orange());
+        g.drawText (autoMono ? String ("POLY>MONO") : String (names[jlimit (0, 2, c.mode)]), Rectangle<float> (28, 18, 230, 62), Justification::centredLeft);
+        g.drawText ("A=" + String (c.ref), Rectangle<float> (kTW - 28 - 200, 18, 200, 62), Justification::centredRight);
+        // nom de l'accordage choisi dans CHROMA (+ étiquette d'instrument : G7, B5...)
+        const bool green = c.mode == 1 && ! autoMono && sn.allInTune;
+        const auto col = green ? TC::green() : TC::amber();
+        const Rectangle<float> r (414.0f - 165.0f, 16.0f, 330.0f, 66.0f);
+        g.setColour (col.withAlpha (0.07f));
+        g.fillRoundedRectangle (r, 7.0f);
+        g.setColour (col.withAlpha (green ? 0.85f : 0.55f));
+        g.drawRoundedRectangle (r.reduced (1), 7.0f, 2.0f);
+        const int n = (int) c.notes.size();
+        const String tag = (c.tuningKey.startsWith ("user|") ? "P" : (c.tuningKey.contains ("|BASSE") ? "B" : "G")) + String (n);
+        g.setFont (mono (20.0f));
+        g.setColour (col.withAlpha (0.6f));
+        g.drawText (tag, Rectangle<float> (r.getX() + 12, r.getY(), 40, r.getHeight()), Justification::centredLeft);
+        const String nm = c.tuningName.toUpperCase();
+        float fh = 38.0f;
+        while (fh > 18.0f && GlyphArrangement::getStringWidth (mono (fh), nm) > r.getWidth() - 70) fh -= 1.0f;
+        g.setFont (mono (fh));
+        g.setColour (col);
+        g.drawText (nm, Rectangle<float> (r.getX() + 48, r.getY(), r.getWidth() - 60, r.getHeight()), Justification::centred, true);
+        g.setColour (TC::amber().withAlpha (0.25f));
+        g.fillRect (28.0f, 96.0f, kTW - 56.0f, 2.0f);
+    }
+
+    void tunerPoly (Graphics& g, const tuna::Snapshot& sn)
+    {
+        const int n = jmax (1, sn.numStrings);
+        const float top = 112.0f, area = 420.0f;
+        const float rowH = jmin (68.0f, area / n);
+        const float y0 = top + (area - rowH * n) * 0.5f;
+        const float x0 = 166.0f, x1 = 800.0f;
+        const int segs = 25, mid = 12;
+        const float pitch = (x1 - x0) / segs, segW = pitch * 0.62f;
+        g.setColour (TC::green().withAlpha (0.13f));
+        for (float y = y0; y < y0 + rowH * n; y += 9.0f) g.fillRect (x0 + pitch * (mid + 0.5f) - 0.75f, y, 1.5f, 4.0f);
+        for (int row = 0; row < n; ++row)
+        {
+            const int idx = n - 1 - row;   // corde la plus aiguë en haut
+            const auto& st = sn.strings[idx];
+            const float cy = y0 + rowH * (row + 0.5f);
+            float alpha = 0.32f;
+            if (st.measured) alpha = st.active ? 1.0f : jmap (jlimit (0.4f, 6.0f, st.age), 0.4f, 6.0f, 1.0f, 0.45f);
+            const bool inTune = st.measured && std::abs (st.cents) <= (float) tuna::TunerEngine::kPolyInTune;
+            g.setFont (mono (jmin (46.0f, rowH * 0.72f)));
+            g.setColour ((inTune ? TC::green() : TC::amber()).withAlpha (alpha));
+            g.drawText (String (tuna::noteName (st.midi)), Rectangle<float> (28, cy - rowH * 0.5f, 132, rowH), Justification::centredLeft);
+            const int lit = st.measured ? jlimit (0, segs - 1, mid + (int) std::lround (st.cents / 4.0f)) : -1;
+            const float h = rowH * 0.50f;
+            for (int k = 0; k < segs; ++k)
+            {
+                const float hh = (k == mid ? rowH * 0.66f : h);
+                Rectangle<float> r (x0 + pitch * k + (pitch - segW) * 0.5f, cy - hh * 0.5f, segW, hh);
+                if (k == lit) segment (g, r, (inTune ? TC::green() : TC::amber()).withAlpha (alpha), true);
+                else if (lit >= 0 && ((k > mid && k < lit) || (k < mid && k > lit))) segment (g, r, TC::amber().withAlpha (0.30f * alpha), false);
+                else segment (g, r, k == mid ? TC::greenDim() : TC::amberDim(), false);
+            }
+        }
+        g.setFont (mono (27.0f));
+        g.setColour (TC::grey().withAlpha (0.75f));
+        g.drawText ("-50", Rectangle<float> (x0 - 4, 544, 100, 36), Justification::centredLeft);
+        g.drawText ("0", Rectangle<float> (x0 + pitch * (mid + 0.5f) - 50, 544, 100, 36), Justification::centred);
+        g.drawText ("+50", Rectangle<float> (x1 - 96, 544, 100, 36), Justification::centredRight);
+    }
+
+    void tunerMono (Graphics& g, const tuna::Snapshot& sn)
+    {
+        const bool has = sn.monoMidi >= 0 && (sn.monoActive || sn.monoAge < 2.0f);
+        const float alpha = ! has ? 0.3f : (sn.monoActive ? 1.0f : jmap (jlimit (0.25f, 2.0f, sn.monoAge), 0.25f, 2.0f, 1.0f, 0.4f));
+        const float c = has ? sn.monoCents : 0.0f;
+        const bool inTune = has && sn.monoPrecise && std::abs (c) <= (float) tuna::TunerEngine::kMonoInTune;
+        const auto col = (inTune ? TC::green() : TC::amber()).withAlpha (alpha);
+        const String pc = has ? String (tuna::pitchClassName (sn.monoMidi)) : String ("--");
+        const String letter = pc.substring (0, 1), acc = pc.substring (1);
+        const String oct = has ? String (tuna::octaveOf (sn.monoMidi)) : String();
+        const auto big = mono (230.0f), small = mono (82.0f);
+        auto tw = [] (const Font& f, const String& t) { return GlyphArrangement::getStringWidth (f, t); };
+        const float wL = tw (big, has ? letter : pc), wA = tw (small, acc), wO = tw (small, oct);
+        const float total = wL + jmax (wA, wO) + 6.0f;
+        const float x = 414.0f - total * 0.5f;
+        g.setColour (col.withAlpha (alpha * 0.18f));
+        g.setFont (big);
+        g.drawText (has ? letter : pc, Rectangle<float> (x - 3, 98, wL + 6, 250), Justification::centredLeft);
+        g.setColour (col);
+        g.drawText (has ? letter : pc, Rectangle<float> (x, 100, wL + 4, 250), Justification::centredLeft);
+        g.setFont (small);
+        if (acc.isNotEmpty()) g.drawText (acc, Rectangle<float> (x + wL + 6, 128, wA + 6, 90), Justification::centredLeft);
+        g.drawText (oct, Rectangle<float> (x + wL + 6, 240, wO + 6, 90), Justification::centredLeft);
+        const int segs = 41, mid = 20;
+        const float x0 = 64.0f, x1 = kTW - 64.0f, pitch = (x1 - x0) / segs, segW = pitch * 0.6f;
+        const float cy = 392.0f;
+        for (int k = 0; k < segs; ++k)
+        {
+            if (k == mid) continue;
+            const float hh = (k - mid) % 4 == 0 ? 52.0f : 36.0f;
+            segment (g, Rectangle<float> (x0 + pitch * k + (pitch - segW) * 0.5f, cy - hh * 0.5f, segW, hh), TC::amberDim(), false);
+        }
+        const float markW = segW * 1.1f, markH = 118.0f, curW = segW * 0.8f, curH = 88.0f;
+        const float centreX = x0 + pitch * (mid + 0.5f);
+        const Rectangle<float> centre (centreX - markW * 0.5f, cy - markH * 0.5f, markW, markH);
+        if (inTune) segment (g, centre, TC::green().withAlpha (alpha), true);
+        else
+        {
+            g.setColour (Colours::white.withAlpha (0.10f)); g.fillRoundedRectangle (centre.expanded (4, 3), 4.0f);
+            g.setColour (Colours::white.withAlpha (has ? 0.95f : 0.55f)); g.fillRoundedRectangle (centre, 2.5f);
+            if (has)
+            {
+                const float cx = centreX + jlimit (-50.0f, 50.0f, c) / 2.5f * pitch;
+                segment (g, Rectangle<float> (cx - curW * 0.5f, cy - curH * 0.5f, curW, curH), TC::amber().withAlpha (alpha), true);
+            }
+        }
+        g.setFont (mono (26.0f));
+        g.setColour (TC::grey().withAlpha (0.7f));
+        g.drawText ("-50", Rectangle<float> (x0 - 4, 448, 100, 32), Justification::centredLeft);
+        g.drawText ("+50", Rectangle<float> (x1 - 96, 448, 100, 32), Justification::centredRight);
+        g.setFont (mono (56.0f));
+        g.setColour (col);
+        g.drawText (has ? ((sn.monoPrecise ? String() : String ("~")) + sign1 (c) + " c") : String ("-- c"), Rectangle<float> (234, 466, 360, 80), Justification::centred);
+        g.setFont (mono (28.0f));
+        g.setColour (TC::grey().withAlpha (0.75f * jmax (0.4f, alpha)));
+        if (has) g.drawText (String (sn.monoHz, sn.monoHz < 100 ? 2 : 1) + " Hz", Rectangle<float> (28, 476, 220, 66), Justification::centredLeft);
+        if (has)
+            for (int i = 0; i < sn.numStrings; ++i)
+                if (sn.strings[i].midi == sn.monoMidi)
+                {
+                    g.drawText ("STRING " + String (sn.numStrings - i), Rectangle<float> (kTW - 248, 476, 220, 66), Justification::centredRight);
+                    break;
+                }
+    }
+
+    void tunerStrobe (Graphics& g, const tuna::Snapshot& sn)
+    {
+        const bool has = sn.monoMidi >= 0 && (sn.monoActive || sn.monoAge < 2.0f);
+        const float alpha = ! has ? 0.3f : (sn.monoActive ? 1.0f : 0.45f);
+        const float c = has ? sn.monoCents : 0.0f;
+        const bool inTune = has && sn.monoPrecise && std::abs (c) <= (float) tuna::TunerEngine::kMonoInTune;
+        const auto col = (inTune ? TC::green() : TC::amber()).withAlpha (alpha);
+        g.setFont (mono (120.0f));
+        g.setColour (col);
+        g.drawText (has ? String (tuna::noteName (sn.monoMidi)) : String ("--"), Rectangle<float> (40, 104, 420, 150), Justification::centredLeft);
+        g.setFont (mono (58.0f));
+        g.drawText (has ? sign1 (c) + " c" : String ("-- c"), Rectangle<float> (kTW - 400, 120, 372, 96), Justification::centredRight);
+        g.setFont (mono (28.0f));
+        g.setColour (TC::grey().withAlpha (0.75f * jmax (0.4f, alpha)));
+        if (has) g.drawText (String (sn.monoHz, sn.monoHz < 100 ? 3 : 2) + " Hz", Rectangle<float> (kTW - 400, 206, 372, 50), Justification::centredRight);
+        const Rectangle<float> area (44, 284, kTW - 88, 230);
+        g.setColour (Colour (0xff0c0f0d));
+        g.fillRoundedRectangle (area, 6.0f);
+        {
+            Graphics::ScopedSaveState ss (g);
+            g.reduceClipRegion (area.toNearestInt());
+            const float bandH[3] = { 86.0f, 66.0f, 50.0f }, period[3] = { 96.0f, 48.0f, 24.0f };
+            float y = area.getY() + 10.0f;
+            for (int b = 0; b < 3; ++b)
+            {
+                const float P = period[b];
+                float off = std::fmod (strobePhase * period[0] * (float) (1 << b), P);
+                if (off < 0) off += P;
+                for (float x = area.getX() - P + off; x < area.getRight(); x += P)
+                {
+                    g.setColour (col.withAlpha (alpha * (0.78f - 0.14f * b)));
+                    g.fillRect (Rectangle<float> (x, y, P * 0.5f, bandH[b]));
+                }
+                y += bandH[b] + 9.0f;
+            }
+            g.setColour (Colours::black.withAlpha (0.55f));
+            g.fillRect (area.getCentreX() - 2.0f, area.getY(), 4.0f, area.getHeight());
+            g.setColour (Colours::white.withAlpha (0.35f));
+            g.fillRect (area.getCentreX() - 0.75f, area.getY(), 1.5f, area.getHeight());
+        }
+        g.setFont (mono (26.0f));
+        g.setColour (TC::grey().withAlpha (0.7f));
+        g.drawText ("< FLAT", Rectangle<float> (44, 530, 200, 40), Justification::centredLeft);
+        g.drawText ("SHARP >", Rectangle<float> (kTW - 244, 530, 200, 40), Justification::centredRight);
+    }
+
     // ------------------------------------------------------------ souris
     void updateHover (Point<float> p)
     {
@@ -1173,6 +1625,11 @@ private:
         {
             for (int v = 0; v < kListRows * 2; ++v) if (itemRect (v).contains (p)) { hi = v; break; }
             if (hi >= 0 && listScroll * kListRows + hi >= filtered().size()) hi = -1;
+        }
+        else if (overlay == Overlay::params && presetMode)
+        {
+            for (int v = 0; v < kListRows * 2; ++v) if (itemRect (v).contains (p)) { hi = v; break; }
+            if (hi >= 0 && presetScroll * kListRows + hi >= plist.names.size()) hi = -1;
         }
         else if (overlay == Overlay::params)
             for (int k = 0; k < params.size(); ++k) if (paramCell (k).contains (p)) { hp = k; break; }
@@ -1216,17 +1673,38 @@ private:
 
         const int b = buttonAt (p);
         if (b != bNone && ! e.mods.isPopupMenu()) { clickButton (b); return; }
+        if (tunerShown())
+        {
+            if (e.mods.isPopupMenu()) { pedalMenu(); return; }
+            if (tunerRect().contains (p))
+            {
+                // comme sur CHROMA : clic sur le nom du mode = mode suivant
+                const auto t = (p - tunerRect().getPosition()) / tunerScale();
+                if (t.y < 90.0f && t.x < 260.0f) proc.chromaNextMode();
+            }
+            return;
+        }
 
         if (overlay == Overlay::browser)
         {
+            // clic : choisir / retirer (numérotés dans l'ordre) ; double-clic : ajouter tout de suite
             for (int v = 0; v < kListRows * 2; ++v)
                 if (itemRect (v).contains (p))
                 {
                     const auto items = filtered();
                     const int i = listScroll * kListRows + v;
-                    if (i < items.size()) addFromBrowser (items.getReference (i));
+                    if (i >= items.size()) return;
+                    const auto& f = items.getReference (i);
+                    if (e.getNumberOfClicks() >= 2) { if (pickedIndex (f) < 0) picked.add (f); addPicked(); }
+                    else togglePick (f);
                     return;
                 }
+            return;
+        }
+        if (overlay == Overlay::params && presetMode)
+        {
+            for (int v = 0; v < kListRows * 2; ++v)
+                if (itemRect (v).contains (p)) { loadPluginPreset (presetScroll * kListRows + v); return; }
             return;
         }
         if (overlay == Overlay::params)
@@ -1332,6 +1810,11 @@ private:
             const int rows = (filtered().size() + kListRows - 1) / kListRows;
             listScroll = jlimit (0, jmax (0, rows - 2), listScroll + dir);
         }
+        else if (overlay == Overlay::params && presetMode)
+        {
+            const int rows = (plist.names.size() + kListRows - 1) / kListRows;
+            presetScroll = jlimit (0, jmax (0, rows - 2), presetScroll + dir);
+        }
         else if (overlay == Overlay::params)
         {
             const int pages = jmax (1, (paramCount + 7) / 8);
@@ -1369,8 +1852,15 @@ private:
             case bReload:     eng.installedList (true); listScroll = 0; break;
             case bParamOnOff: { const int i = paramFxIndex(); if (i >= 0) eng.toggle (i); break; }
             case bParamWindow:{ const int i = paramFxIndex(); if (const auto* f = paramFx()) eng.openWindow (i, ! f->open); break; }
-            case bPagePrev:   paramPage = jmax (0, paramPage - 1); pollParams (true); break;
-            case bPageNext:   ++paramPage; pollParams (true); break;
+            case bPagePrev:   if (presetMode) stepPluginPreset (-1); else { paramPage = jmax (0, paramPage - 1); pollParams (true); } break;
+            case bPageNext:   if (presetMode) stepPluginPreset (1); else { ++paramPage; pollParams (true); } break;
+            case bPresets:    if (presetMode) presetMode = false; else openPresets (false); break;
+            case bPresetRescan: openPresets (true); break;
+            case bAddPicked:  addPicked(); break;
+            case bClearPicked: picked.clear(); break;
+            case bTunerMute:  proc.chromaSetMute (! proc.chroma().muted); break;
+            case bTunerMode:  proc.chromaNextMode(); break;
+            case bTunerExit:  proc.chromaExit(); break;
             case bExport:     exportBanks(); break;
             case bImport:     importBanks(); break;
             case bPc:         eng.setProgramChange (! eng.programChange); break;
@@ -1593,7 +2083,7 @@ private:
         auto* ed = findParentComponentOfClass<OctopusEditor>();
         const int cur = ed != nullptr ? ed->getScaleIndex() : -1;
         PopupMenu sub;
-        sub.addItem (904, "60 % (default)", true, ed != nullptr && cur < 0 && std::abs ((float) ed->getWidth() / (float) L::kRefW - L::kDefaultScale) < 0.02f);
+        sub.addItem (904, "60 % (default)", true, ed != nullptr && cur < 0 && std::abs (ed->getWidth() - L::kDefaultW) <= 3);
         sub.addItem (902, "75 %", true, cur == 1);
         sub.addItem (903, "100 %", true, cur == 2);
         m.addSeparator();
@@ -1636,6 +2126,17 @@ private:
             eng.toggle (i);
         }
 
+        // accordeur : l'écran de CHROMA s'anime en continu tant que le bloc CHROMA est allumé
+        if (tunerShown())
+        {
+            if (! drawnTuner) { drawnTuner = true; if (overlay != Overlay::none) closeOverlay(); }
+            const auto sn = proc.tunerSnapshot();
+            strobePhase += (1.0f / 30.0f) * jlimit (-6.0f, 6.0f, sn.monoCents * 0.25f);
+            if (std::abs (strobePhase) > 1.0e4f) strobePhase = 0.0f;
+            askRepaint (screenPx());
+        }
+        else if (drawnTuner) { drawnTuner = false; askRepaint (screenPx()); }
+
         // écran : redessiné seulement quand l'état affiché change
         if (eng.generation() != drawnGen)
         {
@@ -1677,8 +2178,8 @@ OctopusEditor::OctopusEditor (OctopusProcessor& p) : AudioProcessorEditor (&p), 
     view = std::make_unique<PedalView> (proc);
     addAndMakeVisible (*view);
     setResizable (true, true);
-    const int minW = (int) std::lround (L::kRefW * L::kDefaultScale);           // jamais plus petit que la taille par défaut
-    const int maxW = 1600;
+    const int minW = L::kDefaultW;                                                // jamais plus petit que la taille par défaut
+    const int maxW = L::kMaxW;
     setResizeLimits (minW, (int) std::lround ((double) minW * kH / kW), maxW, (int) std::lround ((double) maxW * kH / kW));
     getConstrainer()->setFixedAspectRatio ((double) kW / (double) kH);
     setOpaque (true);
@@ -1737,8 +2238,7 @@ void OctopusEditor::resized()
 
 int OctopusEditor::getScaleIndex() const
 {
-    const float sc = (float) getWidth() / (float) L::kRefW;
-    for (int i = 1; i < 3; ++i) if (std::abs (sc - L::kScales[i]) < 0.02f) return i;
+    for (int i = 1; i < 3; ++i) if (std::abs (getWidth() - L::kWidths[i]) <= 3) return i;
     return -1;
 }
 
@@ -1747,8 +2247,7 @@ void OctopusEditor::setScaleIndex (int idx)
     idx = jlimit (-1, 2, idx);
     if (idx == 0) idx = -1;
     proc.uiScaleIdx = idx;
-    const float sc = idx < 0 ? L::kDefaultScale : L::kScales[idx];
-    const int w = (int) std::lround (L::kRefW * sc);
+    const int w = idx < 0 ? L::kDefaultW : L::kWidths[idx];
     setSize (w, (int) std::lround ((double) w * kH / kW));
 }
 
@@ -1759,9 +2258,11 @@ void OctopusEditor::showScreen (int which, int arg)
         case 1: view->openBrowser (arg); break;
         case 2: view->openParams (arg); break;
         case 3: view->openBanks(); break;
+        case 4: view->openParams (arg); view->showPresets(); break;
         default: view->closeOverlay(); break;
     }
 }
 
 void OctopusEditor::screenSearch (const String& t, int chip) { view->setChip (chip); view->setSearch (t); }
+void OctopusEditor::screenPick (int visibleIndex) { view->pickVisible (visibleIndex); }
 void OctopusEditor::screenHover (Point<float> unitPos) { view->simulateHover (unitPos); }

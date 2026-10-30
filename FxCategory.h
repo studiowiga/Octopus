@@ -28,8 +28,8 @@ namespace FxCat
             0xff9a5be0, // modulation
             0xffd9479a, // pitch
             0xffc77ef0, // special
-            0xff8c96a3, // utility
-            0xff6f7c8c  // other
+            0xffeef1f5, // utility : blanc (le gris se confondait avec un bloc éteint)
+            0xffd6e2ee  // other : blanc légèrement bleuté
         };
         return juce::Colour (c[juce::jlimit (0, numKinds - 1, k)]);
     }

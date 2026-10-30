@@ -2,7 +2,7 @@
 #   Repère du plugin : 1240 x 928 unités (même rapport que Ring Think), images livrées en 2x.
 #   Lumière unique : en haut à gauche, élévation ~45° (comme sur toutes les pédales Studio Wiga).
 #   Sorties (à la racine du dépôt) :
-#     background.png : boîtier (aluminium anodisé graphite brossé), lunette de l'écran, logo, marquages, jacks IN / OUT
+#     background.png : boîtier (aluminium anodisé graphite brossé), lunette de l'écran, logo, marquages (sans jacks)
 #     fs_off.png / fs_on.png : footswitch d'ECHOFLEX (photo réelle), détouré, ombre portée ; fs_on = léger reflet de la lettre lumineuse
 #   Les positions sont reprises telles quelles dans Layout.h (même nom, mêmes valeurs).
 import os, math
@@ -19,15 +19,14 @@ L = np.array([-0.46, -0.62, 0.64]); L /= np.linalg.norm(L)        # vers la lumi
 Hv = (L + np.array([0, 0, 1.0])); Hv /= np.linalg.norm(Hv)
 
 # ------------------------------------------------------------------ positions (unités) : identiques à Layout.h
-BOX = (46, 24, 1194, 904, 46)                   # boîtier x0 y0 x1 y1 rayon
-BEZEL = (74, 98, 1166, 750, 22)                 # lunette de l'écran (presque toute la façade, comme un Quad Cortex)
-GLASS = (88, 112, 1152, 736, 12)                # vitre (zone affichée par le plugin) : 1064 x 624
-FS_Y = 838.0
-FS_X = (218.0, 486.0, 754.0, 1022.0)            # alignés sur les 4 cases du bas de l'écran
-LED_DX, LED_Y = 0.0, 774.0                      # lettre lumineuse (A-D) au-dessus du footswitch, face à un plat de l'écrou
+BOX = (14, 12, 1226, 916, 46)                   # boîtier x0 y0 x1 y1 rayon (sans jacks : il occupe toute la fenêtre)
+BEZEL = (53, 90, 1187, 767, 22)                 # lunette de l'écran (presque toute la façade, comme un Quad Cortex)
+GLASS = (67, 104, 1173, 753, 12)                # vitre (zone affichée par le plugin) : 1106 x 649 (écran 1064 x 624 x 1.0395)
+FS_Y = 858.0
+FS_X = (202.1, 480.7, 759.3, 1037.9)            # alignés sur les 4 cases du bas de l'écran
+LED_DX, LED_Y = 0.0, 792.0                      # lettre lumineuse (A-D) au-dessus du footswitch, face à un plat de l'écrou
 FS_ROT = 30.0                                   # écrou tourné de 30° : un plat en haut, sous la LED
 FS_FLATS = 80.0                                 # largeur entre plats de l'écrou du footswitch
-JACK_Y = 424.0
 
 def sd_round_rect(x, y, r):
     """ distance signée (unités) à un rectangle arrondi (négative à l'intérieur) """
@@ -106,32 +105,18 @@ def spaced(text, font, x_right, y_top, track, fill):
         x += w_ + track
     return total
 
-spaced("OCTOPUS", f_word, 1150 * AS, 30 * AS, 6 * AS, ink)
-spaced("FX CHAIN CONTROLLER", f_small, 1150 * AS, 73 * AS, 3.0 * AS, ink_dim)
+spaced("OCTOPUS", f_word, 1172 * AS, 18 * AS, 6 * AS, ink)
+spaced("FX CHAIN CONTROLLER", f_small, 1172 * AS, 61 * AS, 3.0 * AS, ink_dim)
 
 logo = Image.open(os.path.join(ROOT, "design", "logo_studio_wiga_blanc.png")).convert("RGBA")
 lw = int(232 * AS); lh = round(logo.height * lw / logo.width)
 logo = logo.resize((lw, lh), Image.LANCZOS)
 la = np.asarray(logo).astype(np.float64); la[..., 3] *= 0.94
-im.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(90 * AS), int(58 * AS) - lh // 2))     # centré à y = 58
+im.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(66 * AS), int(48 * AS) - lh // 2))     # centré à y = 48
 
 # lettres des footswitchs : lettres rétroéclairées dessinées par le plugin au-dessus de chaque footswitch (à la place des LED)
 
-# IN / OUT centrés à la hauteur des jacks (OUT à gauche, IN à droite), écrits le long de la tranche
-for txt, xc, ang in (("OUT", 60.0, 90), ("IN", 1180.0, -90)):
-    tw = int(draw.textlength(txt, font=f_side)) + 8
-    th = int(18 * AS)
-    lab = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
-    ImageDraw.Draw(lab).text((4, 0), txt, font=f_side, fill=ink_dim)
-    lab = lab.rotate(ang, expand=True, resample=Image.BICUBIC)
-    im.alpha_composite(lab, (int(xc * AS - lab.width / 2), int(JACK_Y * AS - lab.height / 2)))
-
-# ------------------------------------------------------------------ 4) jacks du kit Studio Wiga (OUT tranche gauche, IN tranche droite)
-for fname, x_u in (("embase_jack_gauche_OUT.png", BOX[0] - 22), ("embase_jack_droite_IN.png", BOX[2])):
-    j = Image.open(os.path.join(ROOT, "design", fname)).convert("RGBA")
-    jw, jh = int(22 * AS), int(120 * AS)
-    j = j.resize((jw, jh), Image.LANCZOS)
-    im.alpha_composite(j, (int(x_u * AS), int((JACK_Y - 60) * AS)))
+# (plus de jacks ni d'inscriptions IN / OUT sur les tranches : le boîtier occupe toute la fenêtre)
 
 im.save(os.path.join(ROOT, "background.png"), optimize=True)
 print("background.png", im.size)

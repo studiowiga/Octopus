@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.0.6"
+VERSION = "1.1.0"
 TMP = os.path.join(os.path.dirname(os.path.abspath(OUT)), "manual_tmp")
 os.makedirs(TMP, exist_ok=True)
 
@@ -28,8 +28,8 @@ ACC = colors.HexColor("#1E9BD0"); DARK = colors.HexColor("#1A1C22"); GREY = colo
 # ---------- capture annotée (repère 1240 x 928 du plugin) ----------
 src = Image.open(os.path.join(SHOTS, "octopus_100pc.png")).convert("RGB")
 k = src.height / 928.0
-marks = [(1, 166, 104), (2, 330, 104), (3, 695, 104), (4, 882, 104), (5, 1018, 104), (6, 1101, 104),
-         (7, 192, 196), (8, 612, 352), (9, 1124, 390), (10, 218, 670), (11, 486, 832), (12, 440, 752), (13, 1212, 470), (14, 28, 470)]
+marks = [(1, 136, 97), (2, 275, 97), (3, 698, 97), (4, 892, 97), (5, 1034, 97), (6, 1120, 97),
+         (7, 175, 196), (8, 612, 353), (9, 1138, 376), (10, 202, 674), (11, 480.7, 858), (12, 440, 792)]
 ann = src.copy(); dr = ImageDraw.Draw(ann)
 fnt = ImageFont.truetype(os.path.join(ROOT, "fonts", "Poppins-Bold.ttf"), 26)
 for n, x, y in marks:
@@ -42,13 +42,16 @@ annotated = os.path.join(TMP, "annotated.png"); ann.save(annotated)
 def screen_crop(name, out):
     im = Image.open(os.path.join(SHOTS, name)).convert("RGB")
     kk = im.height / 928.0
-    im.crop((int(88 * kk), int(112 * kk), int(1152 * kk), int(736 * kk))).save(os.path.join(TMP, out))
+    im.crop((int(67 * kk), int(104 * kk), int(1173 * kk), int(753 * kk))).save(os.path.join(TMP, out))
     return os.path.join(TMP, out)
 scr_stomp = screen_crop ("octopus_stomp.png", "stomp.png")
 scr_add = screen_crop ("octopus_add_effect.png", "add.png")
 scr_params = screen_crop ("octopus_params.png", "params.png")
 scr_banks = screen_crop ("octopus_banks.png", "banks.png")
 scr_edit = screen_crop ("octopus_edited_hover.png", "edited.png")
+scr_presets = screen_crop ("octopus_presets.png", "presets.png")
+scr_tmono = screen_crop ("octopus_tuner_mono.png", "tuner_mono.png")
+scr_tpoly = screen_crop ("octopus_tuner_poly.png", "tuner_poly.png")
 
 # couverture : pédale détourée (alpha de background.png : boîtier + jacks) sur fond noir, reflet au sol, halo bleu très doux
 shot = Image.open(os.path.join(SHOTS, "octopus_100pc.png")).convert("RGB")
@@ -107,7 +110,7 @@ T = {
  intro_t="1. Introduction",
  intro=["<b>OCTOPUS</b> is not an effect: it is a <b>control screen for the FX chain of a REAPER track</b>, laid out like the screen of a modern floor modeler (in the spirit of the Quad Cortex mini). Insert it on your guitar track and its screen shows every effect of that track as a coloured block, from IN to OUT.",
         "Whatever you do on the Octopus screen happens <b>at the same time in the track's FX chain</b>: switching a block on or off, adding an effect, removing it, moving it, changing its parameters. And whatever you do directly in REAPER appears on the Octopus screen a moment later.",
-        "On top of that, Octopus stores <b>16 banks of 4 presets</b> (1A to 16D) - each preset is a complete chain with its plug-ins, their order and all their settings - and gives you <b>4 footswitches</b> to recall presets (PRESET mode) or to switch groups of blocks (STOMP mode), with the mouse or a MIDI foot controller such as the M-Vave Chocolate Plus.",
+        "On top of that, Octopus stores <b>16 banks of 4 presets</b> (1A to 16D) - each preset is a complete chain with its plug-ins, their order and all their settings - and gives you <b>4 footswitches</b> to recall presets (PRESET mode) or to switch groups of blocks (STOMP mode), with the mouse or a MIDI foot controller such as the M-Vave Chocolate Plus. When the CHROMA tuner block is switched on, Octopus shows CHROMA's screen and becomes the tuner.",
         "The sound passes through Octopus untouched (zero latency). Octopus works <b>in REAPER only</b>: REAPER gives VST3 plug-ins access to their track and to its API, which other DAWs do not. In another DAW the screen simply says so."],
  inst_t="2. Installation",
  inst=[("Windows", "Copy <b>Octopus.vst3</b> (the whole folder) into <b>C:\\Program Files\\Common Files\\VST3</b>."),
@@ -127,14 +130,20 @@ T = {
    ["10", "Footswitch cells", "What each footswitch does in the current mode; a click works like the footswitch."],
    ["11", "Footswitches A-D", "Recall presets A-D of the bank shown (PRESET) or switch their blocks (STOMP)."],
    ["12", "Letter A-D", "Backlit letter of the footswitch: lit for the loaded preset (blue) or for blocks that are ON (colour of the block)."],
-   ["13", "IN", "Input jack (right side)."], ["14", "OUT", "Output jack (left side)."]],
+   ],
  ctl_t="4. The screen in detail",
- ctl=[("Blocks", "Each effect of the track is a block whose colour and icon show its family, guessed from the plug-in name: tuner, amp, cab / IR, drive, dynamics, EQ, wah / filter, delay, reverb, modulation, pitch, special, utility. A lit block with a coloured corner dot is ON; a grey block is bypassed. Small marks show a plug-in window that is open (square, top left), processing in parallel with the previous effect (||) and an offline plug-in (red line). Octopus itself is not shown. Seven blocks per row, four rows; with more effects, scroll with the mouse wheel (the row count appears bottom right)."),
+ ctl=[("Blocks", "Each effect of the track is a block whose colour and icon show its family, guessed from the plug-in name: tuner, amp, cab / IR, drive, dynamics, EQ, wah / filter, delay, reverb, modulation, pitch, special, utility. A lit block with a coloured corner dot is ON; a grey block is bypassed. Small marks show a plug-in window that is open (square, top left), processing in parallel with the previous effect (||) and an offline plug-in (red line). The utility family is shown in white (never grey, so it cannot be mistaken for a block that is off). Octopus itself is not shown. Seven blocks per row, four rows; with more effects, scroll with the mouse wheel (the row count appears bottom right)."),
       ("Mouse", "<b>Click</b> a block: ON / OFF (applied a quarter of a second later, so that a double-click does not switch it). <b>Double-click</b>: parameters on screen. <b>Drag</b> a block: a blue bar shows where it will go, release to move it (the screen scrolls when you drag near its top or bottom edge). <b>Right-click</b>: Bypass / Enable, Parameters on screen, Open / Close plug-in window, Assign to footswitch (STOMP) A-D, Process in parallel with previous, Move (left, right, to start, to end), Insert an effect before / after, Remove. The <b>Delete</b> key removes the block under the mouse. Every action is an undo point in REAPER (Edit &gt; Undo: <i>Octopus: ...</i>)."),
-      ("Adding an effect", "Click the <b>+</b> block (or Insert before / after). The ADD AN EFFECT panel lists the plug-ins installed in REAPER (instruments hidden). Type in the search field (Enter adds the first result) and filter with <b>All, Studio Wiga, VST3, VST, CLAP, JS, AU</b>. Click a plug-in: it is inserted in the track where shown at the top (before a block or at the end). RESCAN re-reads REAPER's list after installing new plug-ins; the mouse wheel scrolls the list."),
-      ("Parameters", "The parameters panel shows 8 parameters per page with their name and the value as REAPER displays it. Click or drag on a bar to set it; the wheel or the arrows change page. <b>ON / OFF</b> switches the block, <b>WINDOW</b> opens or closes the plug-in's own window. Values follow the plug-in live (also when you turn its knobs). Close with X or Escape.")],
+      ("Adding an effect", "Click the <b>+</b> block (or Insert before / after). The ADD AN EFFECT panel lists the plug-ins installed in REAPER (instruments hidden). Type in the search field and filter with <b>All, Studio Wiga, VST3, VST, CLAP, JS, AU</b>. <b>Click the plug-ins one after another</b>: each one is numbered in the order of your clicks (click again to remove it, CLEAR to start over), then press <b>ADD</b> (or Enter): they are all inserted in the track, in that order, where shown at the top (before a block or at the end), as a single undo point. A double-click adds right away. RESCAN re-reads REAPER's list after installing new plug-ins; the mouse wheel scrolls the list."),
+      ("Parameters", "The parameters panel shows 8 parameters per page with their name and the value as REAPER displays it. Click or drag on a bar to set it; the wheel or the arrows change page. <b>ON / OFF</b> switches the block, <b>WINDOW</b> opens or closes the plug-in's own window. Values follow the plug-in live (also when you turn its knobs). Close with X or Escape."),
+      ("Plug-in presets", "In the parameters panel, <b>PRESETS</b> lists the presets of the plug-in as REAPER knows them: its <b>FACTORY</b> presets and your <b>USER</b> presets (saved in REAPER), numbered, with the current one highlighted and shown at the top. Click a preset to load it; the arrows load the previous / next one. To read the names, Octopus briefly loads each preset and then restores the plug-in exactly as it was (settings and displayed preset): do it while not playing. RELOAD LIST reads the list again after you save new presets. PRESETS again returns to the parameters.")],
  scr_cap_add="ADD AN EFFECT panel, filtered on Studio Wiga plug-ins.",
  scr_cap_par="Parameters of a block.",
+ scr_cap_pre="Presets of a block (factory and user).",
+ tun_t="Tuner (CHROMA)",
+ tun=["When a <b>CHROMA</b> block is switched on (click, footswitch in STOMP mode, MIDI...), <b>Octopus becomes the tuner</b>: its screen shows CHROMA's own screen, with the same tuning engine applied to the guitar that goes through Octopus. Mode (MONO, POLY, STROBE), reference A and tuning are read from CHROMA (the tuning chosen in CHROMA, for example G standard on a 7-string, gives the strings of the POLY view and the STRING number in MONO).",
+      "On the right: <b>MUTE</b> mutes the output through CHROMA (button red while muted), <b>MODE</b> switches CHROMA to its next mode (or click the mode name), <b>EXIT</b> switches the CHROMA block off and brings the chain back. Switching CHROMA off any other way does the same. Tip: keep Octopus first on the track so that it sees the guitar before any effect."],
+ tun_cap="Octopus as a tuner: CHROMA screen in MONO (left) and POLY (right), guitar 7-string in G.",
  pre_t="5. Banks and presets",
  pre=["A preset is a <b>complete FX chain</b>: plug-ins, order, every setting, ON / OFF states, parallel processing and the STOMP assignments of the footswitches. It is stored in REAPER's own format, so every plug-in (VST, VST3, CLAP, JS, AU) comes back exactly as saved. Octopus keeps 64 presets (16 banks x 4: 1A to 16D) <b>inside the REAPER project</b>.",
       "<b>SAVE</b>: saves the loaded preset, or <i>Save as...</i> a slot chosen by bank. An existing preset is never replaced without confirmation. You can also right-click a footswitch &gt; <i>Save the current chain in ...</i>.",
@@ -159,7 +168,7 @@ T = {
         "The plug-in parameters <b>Footswitch A-D, Bank down, Bank up, PRESET / STOMP mode</b> can also be driven by REAPER's own MIDI learn or automation, with the same momentary / latching rule. The <b>Octopus ID</b> parameter is internal (it lets each Octopus find itself in the chain): never automate it.",
         "<b>M-Vave Chocolate Plus</b>: in Program Change mode its 4 switches recall presets directly (bank 1 = PC 1-4 = 1A-1D...). In CC mode, learn its switches on footswitches A-D and use STOMP / PRESET as on a hardware modeler."],
  win_t="8. Window",
- win=["Octopus uses the double pedal format with the window sizes of Ring Think. Right-click outside the screen (or in the menus of the screen) &gt; <b>Plugin size</b>: <b>60 % (default)</b>, <b>75 %</b>, <b>100 %</b>. The window opens at its default size and can never be made smaller; you can also drag the bottom-right corner (proportions are kept). The size is saved with the project.",
+ win=["The pedal fills the whole window (no jacks on the sides). Right-click outside the screen (or in the menus of the screen) &gt; <b>Plugin size</b>: <b>60 % (default)</b> (993 x 743 pixels), <b>75 %</b> and <b>100 %</b>, which are larger. The window opens at its default size and can never be made smaller; you can also drag the bottom-right corner (proportions are kept). The size is saved with the project.",
       "The <b>status line</b> under the preset name shows the track name, or the last action (preset loaded, effect added, MIDI learn...)."],
  tips_t="9. Tips",
  tips=["Insert Octopus <b>first</b> on the guitar track; your tuner (CHROMA), noise gate, pedals, Two Notes Genome and ambiences follow. Octopus passes the sound unchanged, so its position does not change the tone.",
@@ -170,15 +179,16 @@ T = {
  tech_t="10. Specifications",
  tech=[["Format", "VST3 (Windows 64-bit, macOS universal)"], ["Version", VERSION], ["Host", "REAPER 6.37 or newer (installed plug-in list: REAPER 7); inactive in other DAWs"],
        ["Audio", "Mono or stereo, passed through unchanged, 0 samples latency"], ["Chain", "Track FX chain or record input FX chain of the track where Octopus is inserted"],
-       ["Presets", "16 banks x 4 presets, complete chains in REAPER's format, saved in the project, .octobank export / import"],
+       ["Presets", "16 banks x 4 presets, complete chains in REAPER's format, saved in the project, .octobank export / import; factory / user presets of each plug-in"],
+       ["Tuner", "CHROMA screen and engine (MONO, POLY, STROBE) when a CHROMA block is on; mode, reference and tuning read from CHROMA"],
        ["MIDI", "MIDI learn of footswitches A-D, bank down / up, mode; momentary or latching; Program Change 1-64; all channels; MIDI passed to the following effects"],
-       ["Window", "60 % (default and minimum, 661 x 495), 75 %, 100 %; anti-freeze v2 on Windows (display caches rebuilt by a timer, watchdog, no host call from the audio thread)"]]),
+       ["Window", "60 % (default and minimum, 993 x 743), 75 % (1241 x 929), 100 % (1655 x 1239); anti-freeze v2 on Windows (display caches rebuilt by a timer, watchdog, no host call from the audio thread)"]]),
 "fr": dict(
  lang="FRANÇAIS", sub="Contrôleur de chaîne d'effets pour REAPER &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
  intro_t="1. Présentation",
  intro=["<b>OCTOPUS</b> n'est pas un effet : c'est un <b>écran de commande de la chaîne d'effets d'une piste REAPER</b>, présenté comme l'écran d'un multi-effet moderne au sol (dans l'esprit du Quad Cortex mini). Insérez-le sur votre piste guitare : son écran affiche chaque effet de cette piste sous forme de bloc coloré, de IN à OUT.",
         "Tout ce que vous faites sur l'écran d'Octopus se fait <b>en même temps dans la chaîne d'effets de la piste</b> : allumer ou couper un bloc, ajouter un effet, le supprimer, le déplacer, régler ses paramètres. Et ce que vous faites directement dans REAPER apparaît un instant plus tard sur l'écran d'Octopus.",
-        "Octopus garde en plus <b>16 banks de 4 presets</b> (1A à 16D) - chaque preset est une chaîne complète avec ses plugins, leur ordre et tous leurs réglages - et vous donne <b>4 footswitchs</b> pour rappeler les presets (mode PRESET) ou basculer des groupes de blocs (mode STOMP), à la souris ou avec un pédalier MIDI comme la M-Vave Chocolate Plus.",
+        "Octopus garde en plus <b>16 banks de 4 presets</b> (1A à 16D) - chaque preset est une chaîne complète avec ses plugins, leur ordre et tous leurs réglages - et vous donne <b>4 footswitchs</b> pour rappeler les presets (mode PRESET) ou basculer des groupes de blocs (mode STOMP), à la souris ou avec un pédalier MIDI comme la M-Vave Chocolate Plus. Quand le bloc accordeur CHROMA est allumé, Octopus affiche l'écran de CHROMA et devient l'accordeur.",
         "Le son traverse Octopus sans modification (latence nulle). Octopus fonctionne <b>uniquement dans REAPER</b> : REAPER donne aux plugins VST3 l'accès à leur piste et à son API, ce que les autres DAW ne font pas. Dans un autre DAW, l'écran l'indique simplement."],
  inst_t="2. Installation",
  inst=[("Windows", "Copiez <b>Octopus.vst3</b> (tout le dossier) dans <b>C:\\Program Files\\Common Files\\VST3</b>."),
@@ -198,14 +208,20 @@ T = {
    ["10", "Cases des footswitchs", "Ce que fait chaque footswitch dans le mode actuel ; un clic agit comme le footswitch."],
    ["11", "Footswitchs A-D", "Rappellent les presets A-D de la bank affichée (PRESET) ou basculent leurs blocs (STOMP)."],
    ["12", "Lettre A-D", "Lettre rétroéclairée du footswitch : allumée pour le preset chargé (bleu) ou pour les blocs allumés (couleur du bloc)."],
-   ["13", "IN", "Jack d'entrée (côté droit)."], ["14", "OUT", "Jack de sortie (côté gauche)."]],
+   ],
  ctl_t="4. L'écran en détail",
- ctl=[("Blocs", "Chaque effet de la piste est un bloc dont la couleur et l'icône indiquent la famille, devinée d'après le nom du plugin : accordeur, ampli, baffle / IR, drive, dynamique, EQ, wah / filtre, delay, reverb, modulation, pitch, spécial, utilitaire. Un bloc coloré avec son point allumé est ON ; un bloc gris est contourné. De petits repères signalent une fenêtre de plugin ouverte (carré en haut à gauche), un traitement en parallèle avec l'effet précédent (||) et un plugin hors ligne (trait rouge). Octopus lui-même n'est pas affiché. Sept blocs par rangée, quatre rangées ; au-delà, faites défiler avec la molette (le nombre de rangées s'affiche en bas à droite)."),
+ ctl=[("Blocs", "Chaque effet de la piste est un bloc dont la couleur et l'icône indiquent la famille, devinée d'après le nom du plugin : accordeur, ampli, baffle / IR, drive, dynamique, EQ, wah / filtre, delay, reverb, modulation, pitch, spécial, utilitaire. Un bloc coloré avec son point allumé est ON ; un bloc gris est contourné. De petits repères signalent une fenêtre de plugin ouverte (carré en haut à gauche), un traitement en parallèle avec l'effet précédent (||) et un plugin hors ligne (trait rouge). La famille utilitaire est en blanc (jamais en gris, pour ne pas la confondre avec un bloc éteint). Octopus lui-même n'est pas affiché. Sept blocs par rangée, quatre rangées ; au-delà, faites défiler avec la molette (le nombre de rangées s'affiche en bas à droite)."),
       ("Souris", "<b>Clic</b> sur un bloc : ON / OFF (appliqué un quart de seconde plus tard, pour qu'un double-clic ne le bascule pas). <b>Double-clic</b> : paramètres à l'écran. <b>Glisser</b> un bloc : une barre bleue montre où il ira, relâchez pour le déplacer (l'écran défile si vous glissez près de son bord haut ou bas). <b>Clic droit</b> : Bypass / Enable, Parameters on screen, Open / Close plug-in window, Assign to footswitch (STOMP) A-D, Process in parallel with previous, Move (gauche, droite, au début, à la fin), Insert an effect before / after, Remove. La touche <b>Suppr</b> supprime le bloc sous la souris. Chaque action est un point d'annulation dans REAPER (Edit &gt; Undo : <i>Octopus: ...</i>)."),
-      ("Ajouter un effet", "Cliquez sur le bloc <b>+</b> (ou Insert before / after). Le panneau ADD AN EFFECT liste les plugins installés dans REAPER (instruments masqués). Tapez dans le champ de recherche (Entrée ajoute le premier résultat) et filtrez avec <b>All, Studio Wiga, VST3, VST, CLAP, JS, AU</b>. Cliquez sur un plugin : il est inséré dans la piste à l'endroit indiqué en haut (devant un bloc ou à la fin). RESCAN relit la liste de REAPER après l'installation de nouveaux plugins ; la molette fait défiler la liste."),
-      ("Paramètres", "Le panneau des paramètres montre 8 paramètres par page avec leur nom et leur valeur telle que REAPER l'affiche. Cliquez ou glissez sur une barre pour régler ; la molette ou les flèches changent de page. <b>ON / OFF</b> bascule le bloc, <b>WINDOW</b> ouvre ou ferme la fenêtre du plugin lui-même. Les valeurs suivent le plugin en direct (même quand vous tournez ses boutons). Fermez avec X ou Échap.")],
+      ("Ajouter un effet", "Cliquez sur le bloc <b>+</b> (ou Insert before / after). Le panneau ADD AN EFFECT liste les plugins installés dans REAPER (instruments masqués). Tapez dans le champ de recherche et filtrez avec <b>All, Studio Wiga, VST3, VST, CLAP, JS, AU</b>. <b>Cliquez les plugins les uns après les autres</b> : chacun est numéroté dans l'ordre de vos clics (nouveau clic pour le retirer, CLEAR pour tout recommencer), puis appuyez sur <b>ADD</b> (ou Entrée) : ils sont tous insérés dans la piste, dans cet ordre, à l'endroit indiqué en haut (devant un bloc ou à la fin), en un seul point d'annulation. Un double-clic ajoute tout de suite. RESCAN relit la liste de REAPER après l'installation de nouveaux plugins ; la molette fait défiler la liste."),
+      ("Paramètres", "Le panneau des paramètres montre 8 paramètres par page avec leur nom et leur valeur telle que REAPER l'affiche. Cliquez ou glissez sur une barre pour régler ; la molette ou les flèches changent de page. <b>ON / OFF</b> bascule le bloc, <b>WINDOW</b> ouvre ou ferme la fenêtre du plugin lui-même. Les valeurs suivent le plugin en direct (même quand vous tournez ses boutons). Fermez avec X ou Échap."),
+      ("Presets du plugin", "Dans le panneau des paramètres, <b>PRESETS</b> liste les presets du plugin tels que REAPER les connaît : ses presets d'usine (<b>FACTORY</b>) et vos presets utilisateur (<b>USER</b>, enregistrés dans REAPER), numérotés, le preset actif surligné et rappelé en haut. Cliquez sur un preset pour le charger ; les flèches chargent le précédent / le suivant. Pour lire les noms, Octopus charge un instant chaque preset puis rétablit le plugin exactement comme il était (réglages et preset affiché) : faites-le hors lecture. RELOAD LIST relit la liste après l'enregistrement de nouveaux presets. Un nouveau clic sur PRESETS revient aux paramètres.")],
  scr_cap_add="Panneau ADD AN EFFECT, filtré sur les plugins Studio Wiga.",
  scr_cap_par="Paramètres d'un bloc.",
+ scr_cap_pre="Presets d'un bloc (usine et utilisateur).",
+ tun_t="Accordeur (CHROMA)",
+ tun=["Quand un bloc <b>CHROMA</b> est allumé (clic, footswitch en mode STOMP, MIDI...), <b>Octopus devient l'accordeur</b> : son écran affiche l'écran de CHROMA lui-même, avec le même moteur d'accordage appliqué à la guitare qui traverse Octopus. Le mode (MONO, POLY, STROBE), le La de référence et l'accordage sont lus dans CHROMA (l'accordage choisi dans CHROMA, par exemple G standard sur une 7 cordes, donne les cordes de la vue POLY et le numéro de corde STRING en MONO).",
+      "À droite : <b>MUTE</b> coupe la sortie par CHROMA (bouton rouge tant que c'est coupé), <b>MODE</b> passe CHROMA au mode suivant (ou cliquez sur le nom du mode), <b>EXIT</b> éteint le bloc CHROMA et ramène la chaîne. Éteindre CHROMA autrement fait la même chose. Conseil : gardez Octopus en premier sur la piste pour qu'il entende la guitare avant tout effet."],
+ tun_cap="Octopus en accordeur : écran de CHROMA en MONO (à gauche) et en POLY (à droite), guitare 7 cordes en G.",
  pre_t="5. Banks et presets",
  pre=["Un preset est une <b>chaîne d'effets complète</b> : plugins, ordre, tous les réglages, états ON / OFF, traitement parallèle et assignations STOMP des footswitchs. Il est gardé au format de REAPER lui-même : chaque plugin (VST, VST3, CLAP, JS, AU) revient exactement comme il a été enregistré. Octopus garde 64 presets (16 banks x 4 : 1A à 16D) <b>dans le projet REAPER</b>.",
       "<b>SAVE</b> : enregistre le preset chargé, ou <i>Save as...</i> dans un emplacement choisi par bank. Un preset existant n'est jamais remplacé sans confirmation. Vous pouvez aussi faire un clic droit sur un footswitch &gt; <i>Save the current chain in ...</i>.",
@@ -230,7 +246,7 @@ T = {
         "Les paramètres du plugin <b>Footswitch A-D, Bank down, Bank up, PRESET / STOMP mode</b> peuvent aussi être pilotés par le MIDI learn ou l'automation de REAPER, avec la même règle momentané / accrochage. Le paramètre <b>Octopus ID</b> est interne (il permet à chaque Octopus de se retrouver dans la chaîne) : ne l'automatisez jamais.",
         "<b>M-Vave Chocolate Plus</b> : en mode Program Change, ses 4 commutateurs rappellent directement les presets (bank 1 = PC 1-4 = 1A-1D...). En mode CC, apprenez ses commutateurs sur les footswitchs A-D et utilisez STOMP / PRESET comme sur un multi-effet matériel."],
  win_t="8. Fenêtre",
- win=["Octopus utilise le format pédale double avec les tailles de fenêtre de Ring Think. Clic droit hors de l'écran (ou dans les menus de l'écran) &gt; <b>Plugin size</b> : <b>60 % (default)</b>, <b>75 %</b>, <b>100 %</b>. La fenêtre s'ouvre à sa taille par défaut et ne peut jamais être réduite en dessous ; on peut aussi tirer le coin en bas à droite (proportions conservées). La taille est mémorisée avec le projet.",
+ win=["La pédale occupe toute la fenêtre (pas de jacks sur les côtés). Clic droit hors de l'écran (ou dans les menus de l'écran) &gt; <b>Plugin size</b> : <b>60 % (default)</b> (993 x 743 pixels), puis <b>75 %</b> et <b>100 %</b>, plus grandes. La fenêtre s'ouvre à sa taille par défaut et ne peut jamais être réduite en dessous ; on peut aussi tirer le coin en bas à droite (proportions conservées). La taille est mémorisée avec le projet.",
       "La <b>ligne d'état</b>, sous le nom du preset, affiche le nom de la piste ou la dernière action (preset chargé, effet ajouté, MIDI learn...)."],
  tips_t="9. Conseils d'utilisation",
  tips=["Insérez Octopus <b>en premier</b> sur la piste guitare ; votre accordeur (CHROMA), le noise gate, les pédales, Two Notes Genome et les ambiances suivent. Octopus laisse passer le son tel quel : sa position ne change pas le son.",
@@ -241,9 +257,10 @@ T = {
  tech_t="10. Caractéristiques techniques",
  tech=[["Format", "VST3 (Windows 64 bits, macOS universel)"], ["Version", VERSION], ["Hôte", "REAPER 6.37 ou plus récent (liste des plugins installés : REAPER 7) ; inactif dans les autres DAW"],
        ["Audio", "Mono ou stéréo, transmis sans modification, latence de 0 échantillon"], ["Chaîne", "Chaîne d'effets ou effets d'entrée (enregistrement) de la piste où Octopus est inséré"],
-       ["Presets", "16 banks x 4 presets, chaînes complètes au format de REAPER, enregistrés dans le projet, export / import .octobank"],
+       ["Presets", "16 banks x 4 presets, chaînes complètes au format de REAPER, enregistrés dans le projet, export / import .octobank ; presets usine / utilisateur de chaque plugin"],
+       ["Accordeur", "écran et moteur de CHROMA (MONO, POLY, STROBE) quand un bloc CHROMA est allumé ; mode, référence et accordage lus dans CHROMA"],
        ["MIDI", "MIDI learn des footswitchs A-D, bank - / +, mode ; momentané ou à accrochage ; Program Change 1-64 ; tous canaux ; MIDI transmis aux effets suivants"],
-       ["Fenêtre", "60 % (par défaut et minimum, 661 x 495), 75 %, 100 % ; anti-gel v2 sous Windows (caches d'affichage refaits par un timer, chien de garde, aucun appel à l'hôte depuis le thread audio)"]]),
+       ["Fenêtre", "60 % (par défaut et minimum, 993 x 743), 75 % (1241 x 929), 100 % (1655 x 1239) ; anti-gel v2 sous Windows (caches d'affichage refaits par un timer, chien de garde, aucun appel à l'hôte depuis le thread audio)"]]),
 }
 
 W = A4[0] - 36 * mm
@@ -278,6 +295,11 @@ def section(lang):
                  colWidths=[W * 0.5, W * 0.5])
     pair.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
     f.append(KeepTogether([Spacer(1, 3 * mm), pair]))
+    f.append(captioned(scr_presets, W * 0.48, t["scr_cap_pre"]))
+    f.append(P(t["tun_t"], "h2")); f += [P(x) for x in t["tun"]]
+    tpair = Table([[img(scr_tmono, W * 0.48), img(scr_tpoly, W * 0.48)]], colWidths=[W * 0.5, W * 0.5])
+    tpair.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
+    f.append(KeepTogether([Spacer(1, 2 * mm), tpair, P(t["tun_cap"], "small")]))
     f.append(PageBreak())
     f.append(P(t["pre_t"], "h1")); f += [P(x) for x in t["pre"]]
     f.append(captioned(scr_banks, W * 0.62, t["scr_cap_banks"]))

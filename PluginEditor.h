@@ -13,12 +13,13 @@ public:
     void parentHierarchyChanged() override;
     void visibilityChanged() override;
     int  getScaleIndex() const;          // 1, 2 = 75 %, 100 %  (-1 = taille par défaut / libre)
-    void setScaleIndex (int idx);        // -1 = taille par défaut (60 %, aussi la taille minimale)
+    void setScaleIndex (int idx);        // -1 = taille par défaut (affichée 60 %, aussi la taille minimale)
     OctopusProcessor& getProc() noexcept { return proc; }
 
-    // outil de rendu / tests : ouvre une fenêtre de l'écran (0 = aucune, 1 = ajout d'effet, 2 = paramètres, 3 = banks)
+    // outil de rendu / tests : ouvre une fenêtre de l'écran (0 = aucune, 1 = ajout d'effet, 2 = paramètres, 3 = banks, 4 = presets du plugin)
     void showScreen (int which, int arg = 0);
     void screenSearch (const juce::String& text, int chip);
+    void screenPick (int visibleIndex);
     void screenHover (juce::Point<float> screenUnits);
 
 private:

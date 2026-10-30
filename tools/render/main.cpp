@@ -116,15 +116,60 @@ int main (int argc, char** argv)
     e.setMode (OctopusEngine::presetMode);
     ed->showScreen (1, 3);
     ed->screenSearch ({}, 1);
+    ed->screenPick (5); ed->screenPick (1); ed->screenPick (9);
     shot ("octopus_add_effect");
     ed->screenSearch ("rea", 0);
     shot ("octopus_add_search");
 
     ed->showScreen (2, e.blocks()[6]);
     shot ("octopus_params");
+    ed->showScreen (4, e.blocks()[6]);
+    shot ("octopus_presets");
     ed->showScreen (3);
     shot ("octopus_banks");
     ed->showScreen (0);
+
+    // accordeur : bloc CHROMA allumé, guitare 7 cordes (G1 joué 8 cents bas)
+    {
+        proc.prepareToPlay (48000.0, 256);
+        int ci = -1;
+        for (int i = 0; i < e.chain().size(); ++i) if (OctopusEngine::isChroma (e.chain().getReference (i))) ci = i;
+        auto& h = e.chainHost();
+        h.setParam (ci, 0, 0.0); h.setParam (ci, 1, 0.0); h.setParam (ci, 2, 0.5);
+        e.setEnabled (ci, true);
+        auto play = [&] (double hz, double secs)
+        {
+            AudioBuffer<float> b (2, 256); MidiBuffer m;
+            static double ph = 0;
+            for (int blk = 0; blk < (int) (secs * 48000 / 256); ++blk)
+            {
+                for (int i = 0; i < 256; ++i)
+                {
+                    const float v = (float) (0.3 * std::sin (ph) + 0.15 * std::sin (2 * ph) + 0.08 * std::sin (3 * ph));
+                    b.setSample (0, i, v); b.setSample (1, i, v);
+                    ph += 2.0 * MathConstants<double>::pi * hz / 48000.0;
+                }
+                proc.processBlock (b, m);
+                if (blk % 8 == 0) MessageManager::getInstance()->runDispatchLoopUntil (5);
+            }
+        };
+        pump (10);
+        play (49.0 * std::pow (2.0, -8.0 / 1200.0), 2.5);
+        shot ("octopus_tuner_mono");
+        h.setParam (ci, 1, 1.0);
+        play (110.0 * std::pow (2.0, 3.0 / 1200.0), 2.5);
+        shot ("octopus_tuner_strobe");
+        h.setParam (ci, 1, 0.5);
+        pump (10);
+        play (73.42, 2.0);
+        shot ("octopus_tuner_poly");
+        check (proc.chroma().on && proc.chroma().notes.size() == 7, "accordeur : CHROMA allumé, accordage lu dans CHROMA (" + proc.chroma().tuningName + ")");
+        const auto sn = proc.tunerSnapshot();
+        std::printf ("  accordeur : note %d, %.1f cents\n", sn.monoMidi, sn.monoCents);
+        e.setEnabled (ci, false);
+        pump (5);
+        check (! proc.chroma().on, "CHROMA éteint : retour à la chaîne");
+    }
 
     ed->setScaleIndex (2);
     shot ("octopus_100pc");

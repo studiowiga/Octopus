@@ -1,6 +1,21 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "OctopusEngine.h"
+#include "TunerEngine.h"
+#include "Tunings.h"
+
+// accordeur : réglages de CHROMA lus dans REAPER (paramètres + état du plugin)
+struct ChromaState
+{
+    bool on = false;              // un bloc CHROMA est allumé : Octopus devient l'accordeur
+    int index = -1;               // indice REAPER du bloc
+    int mode = 0;                 // 0 MONO, 1 POLY, 2 STROBE
+    int ref = 440;                // La de référence
+    bool muted = false;
+    juce::String tuningName, tuningKey;
+    std::vector<int> notes;       // accordage choisi dans CHROMA (grave -> aigu)
+    int muteParam = -1, modeParam = -1, refParam = -1;
+};
 
 class ReaperBridge;
 
@@ -15,8 +30,8 @@ public:
     explicit OctopusProcessor (bool demoChain = false);
     ~OctopusProcessor() override;
 
-    void prepareToPlay (double, int) override {}
-    void releaseResources() override {}
+    void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    void releaseResources() override;
     bool isBusesLayoutSupported (const BusesLayout&) const override;
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     using AudioProcessor::processBlock;
@@ -40,6 +55,12 @@ public:
     void setIHostApplication (Steinberg::FUnknown*) override;
 
     OctopusEngine& getEngine() noexcept { return *engine; }
+    const ChromaState& chroma() const noexcept { return chromaState; }
+    tuna::Snapshot tunerSnapshot() const { return tuner.getSnapshot(); }
+    void chromaSetMute (bool mute);
+    void chromaNextMode();
+    void chromaExit();
+    void refreshChroma (bool readTuning);     // relit les réglages de CHROMA (thread de messages)
     juce::AudioProcessorValueTreeState apvts;
     std::atomic<int> uiScaleIdx { -1 };     // -1 = taille par défaut (60 %)
 
@@ -62,6 +83,25 @@ private:
     juce::CriticalSection stateLock;        // jamais pris par le thread audio
     juce::ValueTree engineState;
     juce::ValueTree pendingEngineState;     // reçu par setStateInformation hors du thread de messages
+
+    // accordeur (moteur de CHROMA) : le thread audio copie le son dans une file sans verrou, un thread d'analyse
+    // le traite ; seulement quand un bloc CHROMA est allumé
+    struct AnalysisThread : public juce::Thread
+    {
+        explicit AnalysisThread (OctopusProcessor& o) : juce::Thread ("Octopus tuner"), owner (o) {}
+        void run() override;
+        OctopusProcessor& owner;
+    };
+    tuna::TunerEngine tuner;
+    juce::AbstractFifo tunerFifo { 1 << 16 };
+    std::vector<float> tunerBuf;
+    std::atomic<bool> tunerOn { false };
+    double sampleRate = 48000.0;
+    AnalysisThread analysis { *this };
+    ChromaState chromaState;
+    juce::String chromaGuid;
+    int chromaTick = 0;
+    void updateChroma();
 
     void timerCallback() override;
     void newToken();
