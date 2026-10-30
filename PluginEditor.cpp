@@ -370,11 +370,13 @@ private:
         if (lvl <= 0.003f) return;
 
         // seule la lettre s'éclaire : verre teinté rétroéclairé, intensité modérée, très léger débord lumineux sur son contour
-        const float k = 0.82f * lvl;
-        g.setColour (col.withAlpha (0.10f * lvl));
+        const float k = lvl;
+        g.setColour (col.withAlpha (0.06f * lvl));
+        g.strokePath (p, PathStrokeType (3.4f * s, PathStrokeType::curved, PathStrokeType::rounded));
+        g.setColour (col.withAlpha (0.16f * lvl));
         g.strokePath (p, PathStrokeType (1.8f * s, PathStrokeType::curved, PathStrokeType::rounded));
-        ColourGradient body (col.interpolatedWith (Colours::white, 0.30f).withAlpha (k), 0.0f, pb.getY(),
-                             col.withMultipliedBrightness (0.80f).withAlpha (k), 0.0f, pb.getBottom(), false);
+        ColourGradient body (col.interpolatedWith (Colours::white, 0.45f).withAlpha (k), 0.0f, pb.getY(),
+                             col.withMultipliedBrightness (0.95f).withAlpha (k), 0.0f, pb.getBottom(), false);
         g.setGradientFill (body);
         g.fillPath (p);
     }

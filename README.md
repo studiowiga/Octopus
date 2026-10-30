@@ -64,3 +64,4 @@ v1.0.0 : première version.
 v1.0.1 : footswitchs tournés de 30° (un plat de l'écrou en haut), LED au-dessus de chaque footswitch, lettre à gauche ; éclairage des LED qui retombe à zéro avant le bord du calque.
 v1.0.2 : les LED sont remplacées par les lettres A, B, C, D rétroéclairées au-dessus des footswitchs (gravées quand elles sont éteintes, lumineuses dans la couleur du mode quand elles sont allumées).
 v1.0.3 : lettres moins lumineuses ; seul le tracé de la lettre s'allume (plus de tache de lumière sur la façade).
+v1.0.4 : lettres A-D un peu plus lumineuses.
