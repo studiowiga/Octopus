@@ -88,3 +88,5 @@ v1.1.2 : presets utilisateur des plugins (SAVE USER) ; en-tête PRESET / STOMP s
 v1.1.3 : trois rangées de blocs, même espace entre les blocs en largeur et en hauteur ; cases des footswitchs décollées du bas de
   l'écran ; logo Studio Wiga encore réduit ; taille 50 % et choix de la taille par défaut (réglage commun, `settings.xml`).
 v1.1.4 : cases des footswitchs à égale distance entre elles et des bords de l'écran.
+v1.1.5 : ligne de liaison entre deux rangées centrée entre le nom des blocs et la rangée suivante ; grille centrée, lignes de retour
+  de même longueur à gauche et à droite.

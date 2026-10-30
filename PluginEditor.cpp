@@ -23,7 +23,7 @@ namespace
     constexpr float kHeaderH = 74.0f;
     // 3 rangées visibles ; même espace entre les carrés horizontalement et verticalement (pas de 140 = carré 70 + 70)
     constexpr int kRows = 3, kCols = 7;
-    constexpr float kGridTop = 106.0f, kRowPitch = 140.0f, kColX0 = 104.0f, kColPitch = 140.0f;
+    constexpr float kGridTop = 106.0f, kRowPitch = 140.0f, kColPitch = 140.0f, kColX0 = (kSW - kColPitch * (float) (kCols - 1)) * 0.5f;   // grille centrée
     constexpr float kTile = 70.0f, kTileDy = 40.0f;              // carré du bloc, centre à rowTop + kTileDy
     // cases des footswitchs : même écart entre elles et avec les bords de l'écran, décollées du bas
     constexpr float kFooterY = 547.0f, kFooterH = 58.0f, kFooterGap = 16.0f, kFooterW = (kSW - 5.0f * kFooterGap) / 4.0f;
@@ -513,7 +513,9 @@ private:
     {
         const int n = numSlots();
         Path path;
-        const float xL = 34.0f, xR = kSW - 34.0f;
+        // lignes de retour : même débord à gauche et à droite des carrés (un demi-écart)
+        const float xL = kColX0 - kTile * 0.5f - (kColPitch - kTile) * 0.5f;
+        const float xR = kColX0 + kColPitch * (float) (kCols - 1) + kTile * 0.5f + (kColPitch - kTile) * 0.5f;
         auto P = [this] (float x, float y) { return S (Point<float> (x, y)); };
         // entrée
         {
@@ -525,11 +527,14 @@ private:
         {
             const auto a = slotCentre (k - 1), b = slotCentre (k);
             if (k % kCols != 0) { path.lineTo (S (b)); continue; }
-            const float ry = rowTop ((k - 1) / kCols) + kRowPitch - 7.0f;        // retour sous la rangée
+            // retour sous la rangée : au milieu de l'espace libre entre le nom des blocs et le haut des carrés de la rangée suivante
+            const float nameBottom = kTileDy + kTile * 0.5f + 4.0f + 22.0f;
+            const float nextTop = kRowPitch + kTileDy - kTile * 0.5f;
+            const float ry = rowTop ((k - 1) / kCols) + (nameBottom + nextTop) * 0.5f;
             path.lineTo (P (xR, a.y)); path.lineTo (P (xR, ry)); path.lineTo (P (xL, ry)); path.lineTo (P (xL, b.y)); path.lineTo (S (b));
         }
         const auto last = slotCentre (n - 1);
-        path.lineTo (P (xR + 4.0f, last.y));
+        path.lineTo (P (xR + 6.0f, last.y));
         g.setColour (kLine.withAlpha (0.75f));
         g.strokePath (path, PathStrokeType (2.0f * s, PathStrokeType::mitered, PathStrokeType::rounded));
 
@@ -538,13 +543,13 @@ private:
         if (firstRow == 0)
         {
             const auto c0 = slotCentre (0);
-            g.drawText ("IN", S (Rectangle<float> (0.0f, c0.y - 24.0f, 30.0f, 18.0f)), Justification::centred);
+            g.drawText ("IN", S (Rectangle<float> (xL - 6.0f - 22.0f, c0.y - 24.0f, 44.0f, 18.0f)), Justification::centred);
             g.fillEllipse (Rectangle<float> (S (7.0f), S (7.0f)).withCentre (P (xL - 6.0f, c0.y)));
         }
         if (slotVisible (n - 1))
         {
-            g.drawText ("OUT", S (Rectangle<float> (kSW - 44.0f, last.y - 24.0f, 44.0f, 18.0f)), Justification::centred);
-            g.fillEllipse (Rectangle<float> (S (7.0f), S (7.0f)).withCentre (P (xR + 4.0f, last.y)));
+            g.drawText ("OUT", S (Rectangle<float> (xR + 6.0f - 22.0f, last.y - 24.0f, 44.0f, 18.0f)), Justification::centred);
+            g.fillEllipse (Rectangle<float> (S (7.0f), S (7.0f)).withCentre (P (xR + 6.0f, last.y)));
         }
     }
 
