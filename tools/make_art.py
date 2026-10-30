@@ -64,6 +64,15 @@ brush = brush / (brush.std() + 1e-9)
 fine = cv2.GaussianBlur(rng.standard_normal((H, W)), (0, 0), 0.8)
 base = np.array([46.0, 48.0, 56.0])                                 # graphite légèrement bleuté
 tone = base[None, None, :] * (1 + 0.055 * brush[..., None] + 0.025 * fine[..., None])
+if os.environ.get("OCTO_MATERIAL") == "steel":
+    # essai : alu brossé acier (photo fournie) : gris acier plus clair, brossage plus marqué, rayures fines, reflets larges
+    scratch = cv2.GaussianBlur(rng.standard_normal((H, W)), (0, 0), sigmaX=22, sigmaY=0.45)
+    scratch = scratch / (scratch.std() + 1e-9)
+    sheen = cv2.GaussianBlur(rng.standard_normal((H // 8, W // 8)), (0, 0), sigmaX=34, sigmaY=22)
+    sheen = cv2.resize(sheen / (sheen.std() + 1e-9), (W, H), interpolation=cv2.INTER_CUBIC)
+    base = np.array([80.0, 83.0, 90.0])
+    tone = base[None, None, :] * (1 + 0.075 * brush[..., None] + 0.045 * scratch[..., None] + 0.06 * sheen[..., None]
+                                  + 0.03 * fine[..., None])
 # éclairage : ambiance + diffus + reflet (anodisé : reflet un peu bleuté)
 lit = tone * (0.55 + 0.62 * ndl[..., None]) + spec[..., None] * np.array([150, 158, 175])
 # léger dégradé d'éclairage de la façade (plus clair en haut à gauche)
