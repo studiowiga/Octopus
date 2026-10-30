@@ -215,10 +215,13 @@ public:
         g.drawImage (bg.get(), getLocalBounds().toFloat());
         if (logoImg.isValid())             // logo OCTOPUS à sa taille exacte, calé sur la grille des pixels : net
         {
-            const auto lr = r (Rectangle<float> (L::logoRight - L::logoW, L::logoCy - L::logoH * 0.5f, L::logoW, L::logoH));
+            const auto lr = r (Rectangle<float> (L::logoRight - L::logoW - L::logoPad, L::logoCy - L::logoH * 0.5f - L::logoPad,
+                                                 L::logoW + 2.0f * L::logoPad, L::logoH + 2.0f * L::logoPad));
             g.setOpacity (0.94f);
-            g.drawImage (logoImg, Rectangle<float> ((float) roundToInt (lr.getX()), (float) roundToInt (lr.getY()),
-                                                    (float) logoImg.getWidth() / dispScale, (float) logoImg.getHeight() / dispScale));
+            const bool exact = std::abs ((float) logoImg.getWidth() - lr.getWidth() * dispScale) < 1.5f;   // sinon : cache pas encore refait (redimensionnement)
+            g.drawImage (logoImg, exact ? Rectangle<float> ((float) roundToInt (lr.getX()), (float) roundToInt (lr.getY()),
+                                                            (float) logoImg.getWidth() / dispScale, (float) logoImg.getHeight() / dispScale)
+                                        : lr);
             g.setOpacity (1.0f);
         }
 
@@ -389,7 +392,7 @@ private:
         if (getWidth() <= 0) return;
         const float ps = s * dispScale;
         for (auto* c : { &bg, &fsOff, &fsOn }) c->prepare (ps);
-        logoImg = crispRescale (logoSrc, roundToInt (L::logoW * ps), roundToInt (L::logoH * ps));
+        logoImg = crispRescale (logoSrc, roundToInt ((L::logoW + 2.0f * L::logoPad) * ps), roundToInt ((L::logoH + 2.0f * L::logoPad) * ps));
         layoutEditors();
         askRepaint (getLocalBounds());
     }
