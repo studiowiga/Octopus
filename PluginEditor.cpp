@@ -569,7 +569,7 @@ private:
         g.fillRoundedRectangle (t, rad);
         if (on)
         {
-            const float a0 = white ? 0.95f : 0.42f, a1 = white ? 0.74f : 0.16f;
+            const float a0 = white ? 0.90f : 0.42f, a1 = white ? 0.70f : 0.16f;   // blanc 5 % moins lumineux
             g.setGradientFill (ColourGradient (col.withAlpha (a0 * alpha), t.getX(), t.getY(), col.withAlpha (a1 * alpha), t.getX(), t.getBottom(), false));
             g.fillRoundedRectangle (t, rad);
         }

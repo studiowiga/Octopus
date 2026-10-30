@@ -91,3 +91,4 @@ v1.1.4 : cases des footswitchs à égale distance entre elles et des bords de l'
 v1.1.5 : ligne de liaison entre deux rangées centrée entre le nom des blocs et la rangée suivante ; grille centrée, lignes de retour
   de même longueur à gauche et à droite.
 v1.1.6 : bloc utilitaire allumé en blanc plein (icône sombre), bien distinct d'un bloc éteint ; ligne de liaison entre les rangées un peu remontée.
+v1.1.7 : blanc du bloc utilitaire allumé 5 % moins lumineux.
