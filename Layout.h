@@ -22,9 +22,9 @@ namespace OctoLayout
     // footswitchs de la photo (écrou), boutons qui s'enfoncent (centre et rayon du chapeau, un peu décalé par la perspective)
     constexpr float fsY = 879.0f;
     const float fsX[4] = { 204.5f, 485.5f, 770.5f, 1052.5f };
-    const float capX[4] = { 200.5f, 483.5f, 774.0f, 1052.5f };
-    const float capY[4] = { 877.0f, 877.0f, 875.5f, 875.0f };
-    constexpr float capR = 31.0f;
+    const float capX[4] = { 202.0f, 486.0f, 774.5f, 1059.5f };   // ajustés sur le bord de chaque chapeau
+    const float capY[4] = { 873.0f, 872.5f, 872.0f, 872.5f };
+    constexpr float capR = 30.5f;
     constexpr bool drawFsSprite = false;                       // les footswitchs sont ceux de la photo
     constexpr float fsSprite = 150.0f;                          // zone redessinée autour d'un footswitch
     constexpr float fsRadius = 46.0f;                           // zone cliquable (cercle)
@@ -37,5 +37,5 @@ namespace OctoLayout
     constexpr float logoH = 62.0f, logoW = logoH * 1704.0f / 446.0f, logoRight = 1200.0f, logoCy = 53.0f;
     constexpr float logoPad = logoH * 32.0f / 446.0f;
     // anneau lumineux autour du bouton qui s'enfonce (comme la Phase 90)
-    constexpr float ringR0 = 31.5f, ringR1 = 34.5f;
+    constexpr float ringR0 = 30.8f, ringR1 = 33.4f;             // juste autour du bord du chapeau
 }
