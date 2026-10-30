@@ -267,20 +267,45 @@ W = A4[0] - 36 * mm
 def captioned(path, width, cap):
     return KeepTogether([Spacer(1, 2 * mm), img(path, width), Spacer(1, 1 * mm), P(cap, "small")])
 
+from reportlab.platypus.flowables import Flowable
+
+class Cover(Flowable):
+    """ Première page : pédale centrée sur la page ; en bas, logo OCTOPUS, sous-titre, version et petit logo Studio Wiga. """
+    def __init__(self, t): super().__init__(); self.t = t
+    def wrap(self, aw, ah): self.aw, self.ah = aw, ah - 1; return aw, ah - 1
+    def draw(self):
+        c = self.canv; aw = self.aw
+        ox, oy = doc.leftMargin, doc.bottomMargin                      # origine du cadre sur la page
+        c.setFont("PopM", 8.5); c.setFillColor(colors.HexColor("#4FC3F7"))
+        c.drawString(0, self.ah - 6 * mm, self.t["lang"].replace("&nbsp;", " "))
+        # pédale : son centre (hors halo et reflet) au centre de la page
+        k = aw / cover_size[0]
+        hp = cover_size[1] * k
+        ped_cy_from_top = cover_pedal_cy * k
+        page_cy = A4[1] / 2 - oy
+        c.drawImage(cover, 0, page_cy + ped_cy_from_top - hp, aw, hp)
+        # bloc du bas (remonté depuis le bas du cadre)
+        y = 2 * mm
+        sw = 30 * mm; sh = sw * sw_ratio
+        c.drawImage(os.path.join(ROOT, "design", "logo_studio_wiga_blanc.png"), (aw - sw) / 2, y, sw, sh, mask="auto")
+        y += sh + 9 * mm
+        c.setFont("Pop", 10.5); c.setFillColor(colors.HexColor("#B4BCC6"))
+        c.drawCentredString(aw / 2, y, self.t["ver"].replace("&nbsp;", " "))
+        y += 6 * mm
+        c.drawCentredString(aw / 2, y, self.t["sub"].replace("&nbsp;", " "))
+        y += 8 * mm
+        lw = 80 * mm; lh = lw * oct_ratio
+        c.drawImage(os.path.join(ROOT, "design", "logo_octopus_blanc.png"), (aw - lw) / 2, y, lw, lh, mask="auto")
+
+cover_size = Image.open(cover).size
+cover_pedal_cy = pad + ch / 2.0                                          # centre de la pédale dans l'image de couverture (px)
+_sw = Image.open(os.path.join(ROOT, "design", "logo_studio_wiga_blanc.png")); sw_ratio = _sw.height / _sw.width
+_ol = Image.open(os.path.join(ROOT, "design", "logo_octopus_blanc.png")); oct_ratio = _ol.height / _ol.width
+
 def section(lang):
     t = T[lang]; f = []
     f.append(NextPageTemplate("p"))
-    f.append(Spacer(1, 4 * mm))
-    f.append(P(t["lang"], "coverlang"))
-    f.append(Spacer(1, 3 * mm))
-    f.append(img(cover, W))
-    f.append(Spacer(1, 2 * mm))
-    f.append(P("O C T O P U S", "cover"))
-    f.append(P(t["sub"], "coversub"))
-    f.append(Spacer(1, 2 * mm))
-    f.append(P(t["ver"], "coversub"))
-    f.append(Spacer(1, 7 * mm))
-    f.append(img(os.path.join(ROOT, "design", "logo_studio_wiga_blanc.png"), 52 * mm))
+    f.append(Cover(t))
     f.append(PageBreak())
     f.append(P(t["intro_t"], "h1")); f += [P(x) for x in t["intro"]]
     f.append(P(t["inst_t"], "h1"))
