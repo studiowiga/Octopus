@@ -20,7 +20,7 @@ namespace OctoLayout
     const float fsX[4] = { 202.1f, 480.7f, 759.3f, 1037.9f };   // alignés sur les 4 cases du bas de l'écran
     constexpr float fsSprite = 150.0f;                          // côté du sprite footswitch (ombre comprise)
     constexpr float fsRadius = 38.0f;                           // zone cliquable (cercle)
-    constexpr float ledY = 781.0f, ledDx = 0.0f;                 // lettre lumineuse A-D au-dessus du footswitch (face à un plat de l'écrou)
+    constexpr float ledY = 787.0f, ledDx = 0.0f;                 // lettre lumineuse A-D au-dessus du footswitch (face à un plat de l'écrou)
     constexpr float ledR = 9.0f;
     // logo OCTOPUS (dessiné par le plugin, net à toutes les tailles) : symétrique du logo Studio Wiga (bord droit à 1174),
     // 54 de haut, centré en hauteur entre le haut du boîtier et la lunette (51) ; dessin 1704 x 446 dans une image
