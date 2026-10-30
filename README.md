@@ -65,3 +65,4 @@ v1.0.1 : footswitchs tournés de 30° (un plat de l'écrou en haut), LED au-dess
 v1.0.2 : les LED sont remplacées par les lettres A, B, C, D rétroéclairées au-dessus des footswitchs (gravées quand elles sont éteintes, lumineuses dans la couleur du mode quand elles sont allumées).
 v1.0.3 : lettres moins lumineuses ; seul le tracé de la lettre s'allume (plus de tache de lumière sur la façade).
 v1.0.4 : lettres A-D un peu plus lumineuses.
+v1.0.5 : très léger halo autour des lettres allumées.
