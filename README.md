@@ -93,3 +93,4 @@ v1.1.5 : ligne de liaison entre deux rangées centrée entre le nom des blocs et
 v1.1.6 : bloc utilitaire allumé en blanc plein (icône sombre), bien distinct d'un bloc éteint ; ligne de liaison entre les rangées un peu remontée.
 v1.1.7 : blanc du bloc utilitaire allumé 5 % moins lumineux.
 v1.1.8 : nouveau logo OCTOPUS (pieuvre, « fx chain controller ») en haut à droite, en symétrie du logo Studio Wiga.
+v1.1.9 : logo OCTOPUS agrandi (54 unités de haut).
