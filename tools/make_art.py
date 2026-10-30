@@ -5,7 +5,7 @@
 #     background.png : boîtier (aluminium anodisé graphite brossé), lunette de l'écran, logo, marquages (sans jacks)
 #     fs_off.png / fs_on.png : footswitch d'ECHOFLEX (photo réelle), détouré, ombre portée ; fs_on = léger reflet de la lettre lumineuse
 #   Les positions sont reprises telles quelles dans Layout.h (même nom, mêmes valeurs).
-import os, math
+import os, sys, math
 import numpy as np, cv2
 from PIL import Image, ImageDraw, ImageFont
 
@@ -66,14 +66,11 @@ base = np.array([46.0, 48.0, 56.0])                                 # graphite l
 tone = base[None, None, :] * (1 + 0.055 * brush[..., None] + 0.025 * fine[..., None])
 MATERIAL = os.environ.get("OCTO_MATERIAL", "dark")
 if MATERIAL == "dark":
-    # design fourni (oct. 2026) : acier brossé anthracite, brossage fin bien visible, reflets larges très doux
-    scratch = cv2.GaussianBlur(rng.standard_normal((H, W)), (0, 0), sigmaX=18, sigmaY=0.45)
-    scratch = scratch / (scratch.std() + 1e-9)
-    sheen = cv2.GaussianBlur(rng.standard_normal((H // 8, W // 8)), (0, 0), sigmaX=34, sigmaY=22)
-    sheen = cv2.resize(sheen / (sheen.std() + 1e-9), (W, H), interpolation=cv2.INTER_CUBIC)
-    base = np.array([54.0, 56.0, 61.0])
-    tone = base[None, None, :] * (1 + 0.085 * brush[..., None] + 0.075 * scratch[..., None] + 0.05 * sheen[..., None]
-                                  + 0.03 * fine[..., None])
+    # design fourni (oct. 2026) : acier brossé anthracite réaliste (tools/brushed.py)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from brushed import brushed
+    tone, _ = brushed(H, W, seed=11, base=(54.0, 57.0, 63.0))
+    tone = tone / 1.08                                                   # l'éclairage de la façade (plus bas) rehausse un peu
 elif MATERIAL == "steel":
     # essai : alu brossé acier (photo fournie) : gris acier plus clair, brossage plus marqué, rayures fines, reflets larges
     scratch = cv2.GaussianBlur(rng.standard_normal((H, W)), (0, 0), sigmaX=22, sigmaY=0.45)

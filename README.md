@@ -101,3 +101,4 @@ v1.2.3 : anneau lumineux placé dans le footswitch, autour du bouton qui s'enfon
 v1.2.4 : lettres A-D abaissées, à égale distance de l'écran et des footswitchs.
 v1.2.5 : étiquette du preset (1A...) dans la couleur de son footswitch ; clic sur le nom du preset en haut pour le renommer ; preset vide = écran vide comme au démarrage (chaîne vidée, un point d'annulation).
 v1.2.6 : nouveau boîtier d'après le design fourni : acier brossé anthracite au brossage fin, liserés usinés clairs sur le pourtour et autour de l'écran.
+v1.2.7 : texture d'acier brossé plus réaliste (tools/brushed.py : lignes de brossage multi-échelles sur toute la largeur, rares rayures, reflet anisotrope en bandes verticales douces).
