@@ -49,6 +49,8 @@ public:
     bool loadPreset (int index, int presetIndex, const juce::String& name) override;
     bool stepPreset (int index, int dir) override;
     juce::String fxChunk (int index) override;
+    bool getFxState (int index, juce::String& key, juce::String& data) override;
+    bool setFxState (int index, const juce::String& key, const juce::String& data) override;
     juce::Array<InstalledFx> installed() override;
 
 private:

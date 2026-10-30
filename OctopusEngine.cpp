@@ -588,6 +588,7 @@ juce::ValueTree OctopusEngine::toTree() const
     root.setProperty ("cc", c.joinIntoString (","), nullptr);
     root.setProperty ("latch", l.joinIntoString (","), nullptr);
     for (int f = 0; f < kFs; ++f) root.setProperty ("stompGuids" + juce::String (f), stompGuids[f].joinIntoString (";"), nullptr);
+    for (int f = 0; f < kFs; ++f) root.setProperty ("fsColour" + juce::String (f), juce::String::toHexString ((int) fsCol[(size_t) f]), nullptr);
     while (t.getNumChildren() > 0) { auto ch = t.getChild (0); t.removeChild (0, nullptr); root.appendChild (ch, nullptr); }
     return root;
 }
@@ -617,5 +618,10 @@ void OctopusEngine::fromTree (const juce::ValueTree& root)
     for (int f = 0; f < kFs; ++f)
         stompGuids[f] = juce::StringArray::fromTokens (root["stompGuids" + juce::String (f)].toString(), ";", "");
     for (auto& s : stompGuids) s.removeEmptyStrings();
+    for (int f = 0; f < kFs; ++f)
+    {
+        const auto hex = root["fsColour" + juce::String (f)].toString();
+        fsCol[(size_t) f] = hex.isNotEmpty() ? (juce::uint32) hex.getHexValue64() : kDefaultFsColour;
+    }
     ++gen;
 }

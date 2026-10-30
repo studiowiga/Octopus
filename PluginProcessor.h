@@ -3,6 +3,7 @@
 #include "OctopusEngine.h"
 #include "TunerEngine.h"
 #include "Tunings.h"
+#include "TuningLibrary.h"
 
 // accordeur : réglages de CHROMA lus dans REAPER (paramètres + état du plugin)
 struct ChromaState
@@ -61,6 +62,10 @@ public:
     void chromaNextMode();
     void chromaExit();
     void refreshChroma (bool readTuning);     // relit les réglages de CHROMA (thread de messages)
+    // presets d'accordage : bibliothèque de CHROMA (usine + accordages perso + favoris, fichier commun à CHROMA)
+    TuningLibrary& tuningLibrary() noexcept { return library; }
+    void chromaSelectTuning (int libraryIndex);     // -1 : revenir à l'accordage de CHROMA
+    bool tuningOverridden() const { return overrideKey.isNotEmpty(); }
     juce::AudioProcessorValueTreeState apvts;
     std::atomic<int> uiScaleIdx { -1 };     // -1 = taille par défaut (60 %)
 
@@ -99,6 +104,10 @@ private:
     double sampleRate = 48000.0;
     AnalysisThread analysis { *this };
     ChromaState chromaState;
+    TuningLibrary library;
+    // accordage choisi dans Octopus : prioritaire tant que l'accordage n'est pas changé dans CHROMA
+    juce::String overrideKey, overrideName, lastChromaKey;
+    std::vector<int> overrideNotes;
     juce::String chromaGuid;
     int chromaTick = 0;
     void updateChroma();

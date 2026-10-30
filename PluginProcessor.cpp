@@ -159,11 +159,22 @@ void OctopusProcessor::refreshChroma (bool readTuning)
     {
         const auto data = decodedState (h.fxChunk (c.index));
         const auto notes = xmlAttr (data, "tuningNotes");
+        const auto key = xmlAttr (data, "tuningKey");
         if (notes.isNotEmpty())
         {
             c.notes = tuna::parseNotes (notes.toStdString());
             c.tuningName = xmlAttr (data, "tuningName");
-            c.tuningKey = xmlAttr (data, "tuningKey");
+            c.tuningKey = key;
+        }
+        // accordage changé dans CHROMA lui-même : il redevient la référence
+        if (key.isNotEmpty() && key != lastChromaKey)
+        {
+            if (lastChromaKey.isNotEmpty()) { const juce::ScopedLock sl (stateLock); overrideKey = {}; overrideNotes.clear(); overrideName = {}; }
+            lastChromaKey = key;
+        }
+        if (overrideKey.isNotEmpty() && ! overrideNotes.empty())
+        {
+            c.notes = overrideNotes; c.tuningName = overrideName; c.tuningKey = overrideKey;
         }
         if (c.notes.empty()) { c.notes = { 40, 45, 50, 55, 59, 64 }; c.tuningName = "E standard"; c.tuningKey = "factory|GUITARE 6|E"; }
         tuner.setTuning (c.notes);
@@ -179,6 +190,7 @@ void OctopusProcessor::updateChroma()
     if (on != c.on || guid != chromaGuid)
     {
         const bool was = c.on;
+        if (guid != chromaGuid && guid.isNotEmpty()) lastChromaKey = {};       // autre bloc CHROMA : on relit son accordage
         c = ChromaState();
         c.on = on; c.index = idx; chromaGuid = guid;
         if (on)
@@ -198,6 +210,28 @@ void OctopusProcessor::updateChroma()
     c.index = idx;
     ++chromaTick;
     if (chromaTick % 6 == 0) refreshChroma (chromaTick % 60 == 0);   // réglages 5 fois / s, accordage toutes les 2 s
+}
+
+void OctopusProcessor::chromaSelectTuning (int i)
+{
+    if (i < 0)                                        // revenir à l'accordage choisi dans CHROMA
+    {
+        { const juce::ScopedLock sl (stateLock); overrideKey = {}; overrideNotes.clear(); overrideName = {}; }
+        if (chromaState.on) refreshChroma (true);
+        return;
+    }
+    if (! juce::isPositiveAndBelow (i, library.size())) return;
+    const auto& t = library.get (i);
+    {
+        const juce::ScopedLock sl (stateLock);       // lu par getStateInformation
+        overrideKey = TuningLibrary::keyOf (t);
+        overrideNotes = t.notes;
+        overrideName = juce::String::fromUTF8 (tuna::displayName (t, false).c_str());
+    }
+    chromaState.notes = overrideNotes;
+    chromaState.tuningName = overrideName;
+    chromaState.tuningKey = overrideKey;
+    tuner.setTuning (overrideNotes);
 }
 
 void OctopusProcessor::chromaSetMute (bool mute)
@@ -335,6 +369,12 @@ void OctopusProcessor::getStateInformation (juce::MemoryBlock& dest)
     juce::ValueTree root ("OctopusState");
     root.setProperty ("version", 1, nullptr);
     root.setProperty ("uiScale", uiScaleIdx.load(), nullptr);
+    {
+        const juce::ScopedLock sl (stateLock);
+        root.setProperty ("tuningKey", overrideKey, nullptr);
+        root.setProperty ("tuningName", overrideName, nullptr);
+        root.setProperty ("tuningNotes", juce::String (tuna::notesToString (overrideNotes)), nullptr);
+    }
     root.appendChild (apvts.copyState(), nullptr);
     {
         const juce::ScopedLock sl (stateLock);
@@ -355,6 +395,13 @@ void OctopusProcessor::setStateInformation (const void* data, int size)
     const auto root = juce::ValueTree::readFromStream (gz);
     if (! root.hasType ("OctopusState")) return;
     uiScaleIdx = (int) root.getProperty ("uiScale", -1);
+    {
+        const juce::ScopedLock sl (stateLock);
+        overrideKey = root["tuningKey"].toString();
+        overrideName = root["tuningName"].toString();
+        overrideNotes = tuna::parseNotes (root["tuningNotes"].toString().toStdString());
+        if (overrideNotes.empty()) overrideKey = {};
+    }
     const auto params = root.getChildWithName (apvts.state.getType());
     if (params.isValid()) apvts.replaceState (params);
     const auto eng = root.getChildWithName ("OCTOPUS");

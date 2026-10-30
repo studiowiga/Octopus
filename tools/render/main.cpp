@@ -146,8 +146,28 @@ int main (int argc, char** argv)
     shot ("octopus_params_midi");
     ed->showScreen (4, e.blocks()[6]);
     shot ("octopus_presets");
+    // presets utilisateur enregistrés par Octopus
+    {
+        auto& h = e.chainHost();
+        const int fi = e.blocks()[6];
+        ed->screenUserPreset (3, {});
+        const double before = h.getParam (fi, 3);
+        h.setParam (fi, 3, 0.8);
+        check (ed->screenUserPreset (1, "My Lead") == 1, "preset utilisateur enregistré");
+        h.setParam (fi, 3, 0.1);
+        ed->screenUserPreset (1, "Ambient Wash");
+        ed->screenUserPreset (2, "1");                            // triés par nom : 0 Ambient Wash, 1 My Lead
+        check (std::abs (h.getParam (fi, 3) - 0.8) < 1.0e-6, "preset utilisateur rechargé (paramètre retrouvé)");
+        ed->screenUserPreset (0, "Crunch Rhythm");
+        shot ("octopus_presets_user");
+        ed->screenUserPreset (3, {});
+        h.setParam (fi, 3, before);
+    }
+    e.setFsColour (0, 0xff6fc8ff); e.setFsColour (1, 0xff45e070); e.setFsColour (2, 0xffffb547); e.setFsColour (3, 0xffff4040);
     ed->showScreen (3);
     shot ("octopus_banks");
+    ed->showScreen (0);
+    shot ("octopus_fs_colours");
     ed->showScreen (0);
 
     // accordeur : bloc CHROMA allumé, guitare 7 cordes (G1 joué 8 cents bas)
@@ -185,6 +205,19 @@ int main (int argc, char** argv)
         play (73.42, 2.0);
         shot ("octopus_tuner_poly");
         check (proc.chroma().on && proc.chroma().notes.size() == 7, "accordeur : CHROMA allumé, accordage lu dans CHROMA (" + proc.chroma().tuningName + ")");
+        {
+            auto& lib = proc.tuningLibrary();
+            int dropD = -1;
+            for (int i = 0; i < lib.size(); ++i) if (lib.get (i).notes.size() == 6 && String (tuna::displayName (lib.get (i), false)).containsIgnoreCase ("drop d")) { dropD = i; break; }
+            check (dropD >= 0, "bibliothèque de CHROMA : accordage Drop D trouvé");
+            proc.chromaSelectTuning (dropD);
+            pump (5);
+            check (proc.chroma().notes.size() == 6 && proc.chroma().tuningName.containsIgnoreCase ("drop"), "accordage choisi dans Octopus : " + proc.chroma().tuningName);
+            play (73.42, 1.5);
+            shot ("octopus_tuner_tuning");
+            proc.chromaSelectTuning (-1);
+            pump (5);
+        }
         const auto sn = proc.tunerSnapshot();
         std::printf ("  accordeur : note %d, %.1f cents\n", sn.monoMidi, sn.monoCents);
         e.setEnabled (ci, false);

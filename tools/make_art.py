@@ -109,10 +109,10 @@ spaced("OCTOPUS", f_word, 1172 * AS, 18 * AS, 6 * AS, ink)
 spaced("FX CHAIN CONTROLLER", f_small, 1172 * AS, 61 * AS, 3.0 * AS, ink_dim)
 
 logo = Image.open(os.path.join(ROOT, "design", "logo_studio_wiga_blanc.png")).convert("RGBA")
-lw = int(232 * AS); lh = round(logo.height * lw / logo.width)
+lw = int(180 * AS); lh = round(logo.height * lw / logo.width)
 logo = logo.resize((lw, lh), Image.LANCZOS)
 la = np.asarray(logo).astype(np.float64); la[..., 3] *= 0.94
-im.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(66 * AS), int(48 * AS) - lh // 2))     # centré à y = 48
+im.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(66 * AS), int(51 * AS) - lh // 2))     # centré en hauteur entre le haut du boîtier (12) et la lunette (90)
 
 # lettres des footswitchs : lettres rétroéclairées dessinées par le plugin au-dessus de chaque footswitch (à la place des LED)
 

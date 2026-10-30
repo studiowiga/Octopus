@@ -651,6 +651,33 @@ bool ReaperBridge::stepPreset (int i, int dir)
     return api->TrackFX_NavigatePresets (track, i | chainFlag, dir);
 }
 
+bool ReaperBridge::getFxState (int i, juce::String& key, juce::String& data)
+{
+    if (! validIndex (i) || i == selfRaw) return false;
+    const int raw = i | chainFlag;
+    for (auto* k : { "vst_chunk", "clap_chunk" })
+        if (namedBig (raw, k, data)) { key = k; return true; }
+    // sinon (JS...) : valeurs de tous les paramètres
+    juce::StringArray v;
+    for (int p = 0; p < numParams (i); ++p) v.add (juce::String (api->TrackFX_GetParamNormalized (track, raw, p), 9));
+    key = "params"; data = v.joinIntoString (",");
+    return v.size() > 0;
+}
+
+bool ReaperBridge::setFxState (int i, const juce::String& key, const juce::String& data)
+{
+    if (! validIndex (i) || i == selfRaw || data.isEmpty()) return false;
+    const int raw = i | chainFlag;
+    if (key == "params")
+    {
+        auto v = juce::StringArray::fromTokens (data, ",", "");
+        for (int p = 0; p < juce::jmin (v.size(), numParams (i)); ++p)
+            if (api->TrackFX_SetParamNormalized != nullptr) api->TrackFX_SetParamNormalized (track, raw, p, v[p].getDoubleValue());
+        return true;
+    }
+    return api->TrackFX_SetNamedConfigParm != nullptr && api->TrackFX_SetNamedConfigParm (track, raw, key.toRawUTF8(), data.toRawUTF8());
+}
+
 juce::String ReaperBridge::fxChunk (int i)
 {
     juce::StringArray entries; int sp = 0; juce::String err;

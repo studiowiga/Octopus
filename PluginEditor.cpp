@@ -1,6 +1,7 @@
 #include "PluginEditor.h"
 #include "FxCategory.h"
 #include "Layout.h"
+#include "UserFxPresets.h"
 #include <BinaryData.h>
 
 using namespace juce;
@@ -50,10 +51,11 @@ namespace
     {
         bNone = 0, bBankPrev, bBankNext, bModePreset, bModeStomp, bSave, bBanks, bClose,
         bParamOnOff, bParamWindow, bPagePrev, bPageNext, bExport, bImport, bPc, bReload,
-        bAddPicked, bClearPicked, bParamMidi, bPresets, bPresetRescan, bTunerMute, bTunerMode, bTunerExit,
+        bAddPicked, bClearPicked, bParamMidi, bPresets, bTunerTunings, bPresetSave, bPresetRescan, bTunerMute, bTunerMode, bTunerExit,
         bChip = 100,                     // + catégorie du navigateur
         bBank = 200,                     // + numéro de bank
-        bCard = 300                      // + slot * 10 + action
+        bCard = 300,                     // + slot * 10 + action
+        bFsColour = 450                  // + footswitch
     };
     enum CardAction { cLoad, cSave, cRename, cCopy, cPaste, cClear, numCardActions };
     const char* const kCardText[numCardActions] = { "LOAD", "SAVE", "RENAME", "COPY", "PASTE", "CLEAR" };
@@ -96,6 +98,11 @@ public:
         renameEd.onEscapeKey = [this] { renameSlot = -1; renameEd.setVisible (false); askRepaint (screenPx()); };
         renameEd.onFocusLost = [this] { commitRename(); };
         addChildComponent (renameEd);
+
+        styleEditor (presetNameEd, "User preset name");
+        presetNameEd.onReturnKey = [this] { commitPresetName(); };
+        presetNameEd.onEscapeKey = [this] { cancelPresetName(); };
+        addChildComponent (presetNameEd);
 
         setOpaque (true);
         setWantsKeyboardFocus (true);
@@ -229,7 +236,7 @@ private:
     int pendingToggle = -1;                        // indice REAPER, basculé après le délai du double-clic
     double pendingToggleAt = 0.0;
     // navigateur
-    TextEditor search, renameEd;
+    TextEditor search, renameEd, presetNameEd;
     int chip = 0, listScroll = 0, insertPos = 0;
     // paramètres
     String paramGuid;
@@ -251,6 +258,10 @@ private:
     bool presetMode = false;
     PluginPresets plist;
     String plistGuid;
+    std::vector<UserFxPreset> upresets;     // presets utilisateur enregistrés par Octopus pour ce plugin (en tête de liste)
+    String upPlugin;                        // nom d'origine du plugin (clé du fichier)
+    int userCur = -1;                       // preset utilisateur chargé en dernier
+    int presetEdIndex = -2;                 // -2 : pas de saisie ; -1 : nouveau preset ; >= 0 : renommer ce preset
     int presetScroll = 0;
     // navigateur : effets choisis (dans l'ordre), ajoutés en une fois
     Array<InstalledFx> picked;
@@ -315,6 +326,9 @@ private:
             renameEd.setFont (font (tfMedium, 18.0f));
             renameEd.setIndents (roundToInt (S (8.0f)), jmax (0, roundToInt ((S (36.0f) - h) * 0.5f) - 1));
         }
+        presetNameEd.setBounds (S (Rectangle<float> (104.0f, 132.0f, 540.0f, 36.0f)).toNearestInt());
+        presetNameEd.setFont (font (tfMedium, 18.0f));
+        presetNameEd.setIndents (roundToInt (S (8.0f)), jmax (0, roundToInt ((S (36.0f) - h) * 0.5f) - 1));
     }
 
     void hideEditors()
@@ -322,6 +336,8 @@ private:
         search.setVisible (false);
         renameSlot = -1;
         renameEd.setVisible (false);
+        presetEdIndex = -2;
+        presetNameEd.setVisible (false);
     }
 
     // ------------------------------------------------------------ caches (timer seulement)
@@ -671,10 +687,10 @@ private:
         std::vector<Btn> v;
         v.push_back ({ { 520.0f, 19.0f, 34.0f, 36.0f }, bBankPrev, CharPointer_UTF8 ("\xe2\x97\x80") });
         v.push_back ({ { 660.0f, 19.0f, 34.0f, 36.0f }, bBankNext, CharPointer_UTF8 ("\xe2\x96\xb6") });
-        v.push_back ({ { 706.0f, 19.0f, 88.0f, 36.0f }, bModePreset, "PRESET", eng.mode() == OctopusEngine::presetMode });
-        v.push_back ({ { 794.0f, 19.0f, 88.0f, 36.0f }, bModeStomp, "STOMP", eng.mode() == OctopusEngine::stompMode });
-        v.push_back ({ { 892.0f, 19.0f, 76.0f, 36.0f }, bSave, "SAVE", false, eng.isReady() });
-        v.push_back ({ { 976.0f, 19.0f, 74.0f, 36.0f }, bBanks, "BANKS", overlay == Overlay::banks });
+        v.push_back ({ { 706.0f, 19.0f, 84.0f, 36.0f }, bModePreset, "PRESET", eng.mode() == OctopusEngine::presetMode });
+        v.push_back ({ { 798.0f, 19.0f, 84.0f, 36.0f }, bModeStomp, "STOMP", eng.mode() == OctopusEngine::stompMode });
+        v.push_back ({ { 892.0f, 19.0f, 78.0f, 36.0f }, bBanks, "BANKS", overlay == Overlay::banks });
+        v.push_back ({ { 978.0f, 19.0f, 72.0f, 36.0f }, bSave, "SAVE", false, eng.isReady() });
         return v;
     }
 
@@ -712,7 +728,8 @@ private:
                 // flèches : preset précédent / suivant (comme les flèches du menu de presets de REAPER)
                 v.push_back ({ { 760.0f, 84.0f, 34.0f, 36.0f }, bPagePrev, CharPointer_UTF8 ("\xe2\x97\x80"), false, plist.count > 1 });
                 v.push_back ({ { 872.0f, 84.0f, 34.0f, 36.0f }, bPageNext, CharPointer_UTF8 ("\xe2\x96\xb6"), false, plist.count > 1 });
-                v.push_back ({ { 910.0f, 132.0f, 138.0f, 36.0f }, bPresetRescan, "RELOAD LIST" });
+                v.push_back ({ { 652.0f, 132.0f, 116.0f, 36.0f }, bPresetSave, presetEdIndex >= -1 ? String ("OK") : String ("SAVE USER"), presetEdIndex >= -1 });
+                v.push_back ({ { 776.0f, 132.0f, 126.0f, 36.0f }, bPresetRescan, "RELOAD LIST" });
             }
             else
             {
@@ -743,6 +760,8 @@ private:
                     v.push_back ({ { x, c.getY() + 15.0f, w - 6.0f, 36.0f }, bCard + sl * 10 + a, kCardText[a], false, en });
                 }
             }
+            for (int f = 0; f < 4; ++f)
+                v.push_back ({ { 520.0f + 132.0f * (float) f, 470.0f, 124.0f, 44.0f }, bFsColour + f, "COLOUR " + fsLetter (f) });
             v.push_back ({ { 16.0f, 560.0f, 156.0f, 44.0f }, bExport, "EXPORT..." });
             v.push_back ({ { 180.0f, 560.0f, 156.0f, 44.0f }, bImport, "IMPORT..." });
             v.push_back ({ { 356.0f, 560.0f, 400.0f, 44.0f }, bPc, String ("PROGRAM CHANGE = PRESETS : ") + (eng.programChange ? "ON" : "OFF"), eng.programChange });
@@ -884,7 +903,7 @@ private:
             const auto c = S (cell);
             const bool lit = eng.fsLit (f);
             const int kind = eng.fsKind (f);
-            const auto col = inPresetMode ? kPresetLed : (kind >= 0 ? FxCat::colour (kind) : kDim);
+            const auto col = inPresetMode ? Colour (eng.fsColour (f)) : (kind >= 0 ? FxCat::colour (kind) : kDim);
             const bool hov = hoverFooter == f;
             g.setColour (lit ? col.withAlpha (0.16f) : (hov ? kScrPanel2.brighter (0.1f) : kScrPanel));
             g.fillRoundedRectangle (c, S (9.0f));
@@ -938,7 +957,24 @@ private:
         }
         else if (overlay == Overlay::params) drawParams (g);
         else if (overlay == Overlay::banks)  drawBanks (g);
-        for (auto& b : overlayButtons()) drawButton (g, b, b.id == bClose ? 18.0f : 15.0f);
+        for (auto& b : overlayButtons())
+        {
+            drawButton (g, b, b.id == bClose ? 18.0f : 15.0f);
+            if (b.id >= bFsColour && b.id < bFsColour + 4)          // pastille de la couleur choisie
+            {
+                const auto sw = S (Rectangle<float> (b.r.getX() + 10.0f, b.r.getCentreY() - 8.0f, 16.0f, 16.0f));
+                g.setColour (Colour (eng.fsColour (b.id - bFsColour)));
+                g.fillEllipse (sw);
+                g.setColour (Colours::white.withAlpha (0.3f));
+                g.drawEllipse (sw, S (1.0f));
+            }
+        }
+        if (overlay == Overlay::banks)
+        {
+            g.setFont (font (tfBold, 15.0f));
+            g.setColour (kDim);
+            g.drawText ("FOOTSWITCH COLOURS (PRESET MODE)", S (Rectangle<float> (16.0f, 470.0f, 496.0f, 44.0f)), Justification::centredRight);
+        }
     }
 
     // navigateur : filtre (catégorie + recherche), deux colonnes
@@ -1176,10 +1212,13 @@ private:
             MouseCursor::showWaitCursor();
             plist = eng.chainHost().presets (i, true);
             MouseCursor::hideWaitCursor();
+            if (plistGuid != paramGuid) userCur = -1;
             plistGuid = paramGuid;
             presetScroll = 0;
         }
         else plist.current = eng.chainHost().presets (i, false).current;
+        upPlugin = eng.chain().getReference (i).original;
+        upresets = UserFxPresets::load (upPlugin);
         askRepaint (screenPx());
     }
 
@@ -1191,10 +1230,133 @@ private:
         h.beginUndo();
         const bool ok = h.loadPreset (i, plist.byName ? -1 : k, plist.names[k]);
         h.endUndo ("preset " + plist.names[k]);
-        if (ok) { plist.current = plist.byName ? k : h.presets (i, false).current; eng.say (FxCat::shortName (eng.chain().getReference (i).name) + " : " + plist.names[k]); }
+        if (ok) { userCur = -1; plist.current = plist.byName ? k : h.presets (i, false).current; eng.say (FxCat::shortName (eng.chain().getReference (i).name) + " : " + plist.names[k]); }
         else eng.say ("REAPER could not load " + plist.names[k]);
         pollParams (true);
         askRepaint (screenPx());
+    }
+
+    int presetTotal() const { return (int) upresets.size() + plist.names.size(); }
+    void clickPresetItem (int k)          // k : rang dans la liste affichée (presets utilisateur d'Octopus d'abord)
+    {
+        const int nu = (int) upresets.size();
+        if (k < nu) loadUserPreset (k);
+        else loadPluginPreset (k - nu);
+    }
+
+    void loadUserPreset (int u)
+    {
+        const int i = paramFxIndex();
+        if (i < 0 || ! isPositiveAndBelow (u, (int) upresets.size())) return;
+        auto& h = eng.chainHost();
+        const auto& p = upresets[(size_t) u];
+        h.beginUndo();
+        const bool ok = h.setFxState (i, p.key, p.data);
+        h.endUndo ("preset " + p.name);
+        if (ok) { userCur = u; plist.current = -1; eng.say (FxCat::shortName (eng.chain().getReference (i).name) + " : " + p.name); }
+        else eng.say ("Could not load " + p.name);
+        pollParams (true);
+        askRepaint (screenPx());
+    }
+
+    void startPresetSave (int renameIndex = -1)
+    {
+        const int i = paramFxIndex();
+        if (i < 0) return;
+        if (presetEdIndex >= -1 && renameIndex == -1) { commitPresetName(); return; }   // le bouton devient OK pendant la saisie
+        presetEdIndex = renameIndex;
+        String n;
+        if (renameIndex >= 0) n = upresets[(size_t) renameIndex].name;
+        else
+        {
+            n = userCur >= 0 ? upresets[(size_t) userCur].name : eng.chainHost().presetName (i);
+            if (n.isEmpty()) n = "My preset " + String ((int) upresets.size() + 1);
+        }
+        layoutEditors();
+        presetNameEd.setText (n, dontSendNotification);
+        presetNameEd.setVisible (true);
+        presetNameEd.grabKeyboardFocus();
+        presetNameEd.selectAll();
+        askRepaint (screenPx());
+    }
+
+    void cancelPresetName()
+    {
+        presetEdIndex = -2;
+        presetNameEd.setVisible (false);
+        askRepaint (screenPx());
+    }
+
+    void commitPresetName()
+    {
+        if (presetEdIndex < -1) return;
+        const int mode = presetEdIndex;
+        const auto name = presetNameEd.getText().trim();
+        cancelPresetName();
+        if (name.isEmpty()) return;
+        if (mode >= 0)                                             // renommer
+        {
+            const int other = UserFxPresets::indexOf (upresets, name);
+            if (other >= 0 && other != mode) { eng.say ("A user preset is already named " + name); return; }
+            upresets[(size_t) mode].name = name;
+            UserFxPresets::save (upPlugin, upresets);
+            return;
+        }
+        const int existing = UserFxPresets::indexOf (upresets, name);
+        if (existing < 0) { storeUserPreset (-1, name); return; }
+        PopupMenu m;                                               // jamais d'écrasement sans confirmation
+        m.addSectionHeader ("\"" + name + "\" already exists");
+        m.addItem (1, "Replace it with the current settings");
+        m.addItem (2, "Cancel");
+        SafePointer<PedalView> sp (this);
+        m.showMenuAsync (PopupMenu::Options(), [sp, existing, name] (int r) { if (sp != nullptr && r == 1) sp->storeUserPreset (existing, name); });
+    }
+
+    void storeUserPreset (int index, const String& name)      // index -1 : nouveau
+    {
+        const int i = paramFxIndex();
+        if (i < 0) return;
+        UserFxPreset p { name, {}, {} };
+        if (! eng.chainHost().getFxState (i, p.key, p.data)) { eng.say ("REAPER did not give the settings of this plug-in"); return; }
+        if (index >= 0) upresets[(size_t) index] = p;
+        else
+        {
+            upresets.push_back (p);
+            std::stable_sort (upresets.begin(), upresets.end(), [] (const UserFxPreset& a, const UserFxPreset& b) { return a.name.compareNatural (b.name) < 0; });
+        }
+        if (! UserFxPresets::save (upPlugin, upresets)) { eng.say ("Could not write " + UserFxPresets::fileFor (upPlugin).getFullPathName()); return; }
+        userCur = UserFxPresets::indexOf (upresets, name);
+        plist.current = -1;
+        eng.say ("User preset saved : " + name);
+        askRepaint (screenPx());
+    }
+
+    void userPresetMenu (int u)
+    {
+        if (! isPositiveAndBelow (u, (int) upresets.size())) return;
+        PopupMenu m;
+        m.addSectionHeader (upresets[(size_t) u].name);
+        m.addItem (1, "Load");
+        m.addItem (2, "Replace with the current settings");
+        m.addItem (3, "Rename");
+        m.addSeparator();
+        m.addItem (4, "Delete");
+        SafePointer<PedalView> sp (this);
+        m.showMenuAsync (PopupMenu::Options(), [sp, u] (int r)
+        {
+            if (sp == nullptr || ! isPositiveAndBelow (u, (int) sp->upresets.size())) return;
+            if (r == 1) sp->loadUserPreset (u);
+            else if (r == 2) sp->storeUserPreset (u, sp->upresets[(size_t) u].name);
+            else if (r == 3) sp->startPresetSave (u);
+            else if (r == 4)
+            {
+                sp->eng.say ("User preset deleted : " + sp->upresets[(size_t) u].name);
+                sp->upresets.erase (sp->upresets.begin() + u);
+                if (sp->userCur == u) sp->userCur = -1; else if (sp->userCur > u) --sp->userCur;
+                UserFxPresets::save (sp->upPlugin, sp->upresets);
+                sp->askRepaint (sp->screenPx());
+            }
+        });
     }
 
     void stepPluginPreset (int dir)
@@ -1206,6 +1368,7 @@ private:
         h.stepPreset (i, dir);
         h.endUndo ("preset");
         plist.current = h.presets (i, false).current;
+        userCur = -1;
         eng.say (FxCat::shortName (eng.chain().getReference (i).name) + " : " + h.presetName (i));
         pollParams (true);
         askRepaint (screenPx());
@@ -1225,9 +1388,12 @@ private:
         g.drawText ("CURRENT", S (Rectangle<float> (16.0f, 132.0f, 90.0f, 36.0f)), Justification::centredLeft);
         g.setFont (font (tfMedium, 21.0f));
         g.setColour (col.brighter (0.4f));
-        const auto curName = i >= 0 ? eng.chainHost().presetName (i) : String();
-        g.drawText (curName.isNotEmpty() ? curName : String ("(modified / no preset)"), S (Rectangle<float> (104.0f, 132.0f, 790.0f, 36.0f)), Justification::centredLeft, true);
-        if (plist.names.isEmpty())
+        auto curName = i >= 0 ? eng.chainHost().presetName (i) : String();
+        if (userCur >= 0 && isPositiveAndBelow (userCur, (int) upresets.size())) curName = upresets[(size_t) userCur].name + "  (user)";
+        if (presetEdIndex < -1)
+            g.drawText (curName.isNotEmpty() ? curName : String ("(modified / no preset)"), S (Rectangle<float> (104.0f, 132.0f, 540.0f, 36.0f)), Justification::centredLeft, true);
+        const int nu = (int) upresets.size();
+        if (presetTotal() == 0)
         {
             g.setFont (font (tfMedium, 18.0f));
             g.setColour (kDim);
@@ -1238,28 +1404,37 @@ private:
         for (int v = 0; v < kListRows * 2; ++v)
         {
             const int k = presetScroll * kListRows + v;
-            if (k >= plist.names.size()) break;
+            if (k >= presetTotal()) break;
             const auto ir = S (itemRect (v));
-            const bool cur = ! plist.byName && k == plist.current;
+            const bool mine = k < nu;
+            const int rk = k - nu;
+            const bool cur = mine ? k == userCur : (! plist.byName && rk == plist.current && userCur < 0);
             g.setColour (cur ? col.withAlpha (0.22f) : (hoverItem == v ? kScrPanel2.brighter (0.12f) : kScrPanel));
             g.fillRoundedRectangle (ir, S (6.0f));
             if (cur) { g.setColour (col); g.drawRoundedRectangle (ir.reduced (S (0.6f)), S (6.0f), S (1.4f)); }
             g.setFont (font (tfRegular, 13.5f));
             g.setColour (kDim);
-            g.drawText (String (k + 1), ir.withWidth (S (40.0f)), Justification::centred);
+            g.drawText (mine ? String (CharPointer_UTF8 ("\xe2\x98\x85")) : String (rk + 1), ir.withWidth (S (40.0f)), Justification::centred);
             g.setFont (font (tfMedium, 17.0f));
             g.setColour (kText);
-            g.drawText (plist.names[k], ir.withTrimmedLeft (S (44.0f)).withTrimmedRight (S (96.0f)), Justification::centredLeft, true);
+            g.drawText (mine ? upresets[(size_t) k].name : plist.names[rk], ir.withTrimmedLeft (S (44.0f)).withTrimmedRight (S (96.0f)), Justification::centredLeft, true);
             g.setFont (font (tfBold, 12.5f));
-            g.setColour (plist.user[k] ? kAmber : kDim);
-            g.drawText (plist.user[k] ? "USER" : "FACTORY", ir.withTrimmedRight (S (12.0f)).removeFromRight (S (84.0f)), Justification::centredRight);
+            const bool user = mine || plist.user[rk];
+            g.setColour (user ? kAmber : kDim);
+            g.drawText (user ? "USER" : "FACTORY", ir.withTrimmedRight (S (12.0f)).removeFromRight (S (84.0f)), Justification::centredRight);
         }
-        const int rows = (plist.names.size() + kListRows - 1) / kListRows;
+        if (plist.names.isEmpty() && plist.count > 0)
+        {
+            g.setFont (font (tfRegular, 14.0f));
+            g.setColour (kDim);
+            g.drawText ("REAPER presets of this plug-in : use the arrows", S (Rectangle<float> (16.0f, 598.0f, 600.0f, 20.0f)), Justification::centredLeft);
+        }
+        const int rows = (presetTotal() + kListRows - 1) / kListRows;
         if (rows > 2)
         {
             g.setFont (font (tfRegular, 14.0f));
             g.setColour (kDim);
-            g.drawText (String (plist.names.size()) + " presets  -  scroll for more", S (Rectangle<float> (16.0f, 598.0f, 1032.0f, 20.0f)), Justification::centredRight);
+            g.drawText (String (presetTotal()) + " presets  -  scroll for more", S (Rectangle<float> (16.0f, 598.0f, 1032.0f, 20.0f)), Justification::centredRight);
         }
     }
 
@@ -1392,17 +1567,67 @@ private:
     // (mode, La de référence, accordage). À droite : MUTE / MODE (paramètres de CHROMA) et EXIT (éteint le bloc CHROMA).
     static constexpr float kTW = 828.0f, kTH = 594.5f;              // repère de l'écran de CHROMA
     bool tunerShown() const { return eng.isReady() && proc.chroma().on; }
-    float tunerScale() const { return kSH / kTH; }
-    Rectangle<float> tunerRect() const { return { 0.0f, 0.0f, kTW * tunerScale(), kSH }; }
+    // écran de CHROMA un peu réduit, centré dans la partie gauche ; colonne de boutons à droite
+    static constexpr float kTunerColX = 800.0f;
+    float tunerScale() const { return 0.84f * kSH / kTH; }
+    Rectangle<float> tunerRect() const
+    {
+        const float w = kTW * tunerScale(), h = kTH * tunerScale();
+        return { (kTunerColX - w) * 0.5f, (kSH - h) * 0.5f, w, h };
+    }
     std::vector<Btn> tunerButtons() const
     {
-        const float x = tunerRect().getRight() + 16.0f, w = kSW - x - 16.0f;
+        const float w = 196.0f, x = kTunerColX + (kSW - kTunerColX - w) * 0.5f;
         const auto& c = proc.chroma();
         std::vector<Btn> v;
-        v.push_back ({ { x, 150.0f, w, 96.0f }, bTunerMute, c.muted ? "MUTED" : "MUTE", c.muted });
-        v.push_back ({ { x, 262.0f, w, 96.0f }, bTunerMode, "MODE" });
-        v.push_back ({ { x, 486.0f, w, 112.0f }, bTunerExit, "EXIT" });
+        v.push_back ({ { x, 134.0f, w, 58.0f }, bTunerTunings, "TUNINGS" });
+        v.push_back ({ { x, 206.0f, w, 58.0f }, bTunerMute, c.muted ? "MUTED" : "MUTE", c.muted });
+        v.push_back ({ { x, 278.0f, w, 72.0f }, bTunerMode, "MODE" });
+        v.push_back ({ { x, 520.0f, w, 58.0f }, bTunerExit, "EXIT" });
         return v;
+    }
+    Rectangle<float> tuningBox() const { return { 414.0f - 165.0f, 16.0f, 330.0f, 66.0f }; }   // repère de CHROMA
+
+    // presets d'accordage : ceux de CHROMA (favoris, usine par catégorie, perso)
+    void tuningMenu()
+    {
+        auto& lib = proc.tuningLibrary();
+        lib.reload();
+        const auto cur = proc.chroma().tuningKey;
+        PopupMenu m;
+        m.addSectionHeader ("TUNINGS (CHROMA)");
+        m.addItem (1, "Use the tuning set in CHROMA", proc.tuningOverridden(), ! proc.tuningOverridden());
+        m.addSeparator();
+        auto label = [&lib] (int i)
+        {
+            const auto& t = lib.get (i);
+            return String::fromUTF8 (tuna::displayName (t, false).c_str()) + "    " + String (tuna::notesToString (t.notes));
+        };
+        const auto fav = lib.favouriteIndices();
+        if (! fav.empty())
+        {
+            PopupMenu f;
+            for (int i : fav) f.addItem (1000 + i, label (i), true, lib.keyAt (i) == cur);
+            m.addSubMenu (CharPointer_UTF8 ("\xe2\x98\x85 FAVORITES"), f);
+        }
+        StringArray cats;
+        std::vector<PopupMenu> menus;
+        for (int i = 0; i < lib.size(); ++i)
+        {
+            const auto& t = lib.get (i);
+            const auto cat = String::fromUTF8 (tuna::displayCategory (t.category, false).c_str());
+            int k = cats.indexOf (cat);
+            if (k < 0) { cats.add (cat); menus.emplace_back(); k = cats.size() - 1; }
+            menus[(size_t) k].addItem (1000 + i, label (i), true, lib.keyAt (i) == cur);
+        }
+        for (int k = 0; k < cats.size(); ++k) m.addSubMenu (cats[k], menus[(size_t) k], true, nullptr, false);
+        SafePointer<PedalView> sp (this);
+        m.showMenuAsync (PopupMenu::Options(), [sp] (int r)
+        {
+            if (sp == nullptr || r <= 0) return;
+            sp->proc.chromaSelectTuning (r == 1 ? -1 : r - 1000);
+            sp->eng.say ("Tuning : " + sp->proc.chroma().tuningName);
+        });
     }
     Font mono (float h) const { return Font (FontOptions (tfMono).withHeight (h)); }
 
@@ -1438,6 +1663,8 @@ private:
     {
         const auto& c = proc.chroma();
         const auto sn = proc.tunerSnapshot();
+        g.setColour (Colour (0xff050706));
+        g.fillRect (S (Rectangle<float> (0.0f, 0.0f, kSW, kSH)));
         {
             Graphics::ScopedSaveState ss (g);
             const auto o = S (tunerRect().getPosition());
@@ -1451,17 +1678,17 @@ private:
             else                         tunerStrobe (g, sn);
         }
         // colonne de droite
-        const auto colR = Rectangle<float> (tunerRect().getRight(), 0.0f, kSW - tunerRect().getRight(), kSH);
+        const auto colR = Rectangle<float> (kTunerColX, 0.0f, kSW - kTunerColX, kSH);
         g.setColour (Colour (0xff07090a));
         g.fillRect (S (colR));
         g.setColour (TC::amber().withAlpha (0.25f));
         g.fillRect (S (Rectangle<float> (colR.getX(), 24.0f, 1.5f, kSH - 48.0f)));
-        g.setFont (Font (FontOptions (tfMono).withHeight (S (34.0f))));
+        g.setFont (Font (FontOptions (tfMono).withHeight (S (26.0f))));
         g.setColour (TC::orange());
-        g.drawText ("TUNER", S (Rectangle<float> (colR.getX(), 30.0f, colR.getWidth(), 44.0f)), Justification::centred);
-        g.setFont (Font (FontOptions (tfMono).withHeight (S (17.0f))));
+        g.drawText ("TUNER", S (Rectangle<float> (colR.getX(), 40.0f, colR.getWidth(), 34.0f)), Justification::centred);
+        g.setFont (Font (FontOptions (tfMono).withHeight (S (13.0f))));
         g.setColour (TC::grey().withAlpha (0.7f));
-        g.drawText ("CHROMA", S (Rectangle<float> (colR.getX(), 76.0f, colR.getWidth(), 26.0f)), Justification::centred);
+        g.drawText ("CHROMA", S (Rectangle<float> (colR.getX(), 74.0f, colR.getWidth(), 20.0f)), Justification::centred);
         for (auto& b : tunerButtons())
         {
             const auto rr = S (b.r);
@@ -1469,19 +1696,20 @@ private:
             const bool red = b.id == bTunerMute && b.active;
             const auto ac = red ? Colour (0xffff2a18) : TC::amber();
             g.setColour (ac.withAlpha (red ? 0.85f : (hov ? 0.16f : 0.06f)));
-            g.fillRoundedRectangle (rr, S (10.0f));
+            g.fillRoundedRectangle (rr, S (8.0f));
             g.setColour (ac.withAlpha (0.65f));
-            g.drawRoundedRectangle (rr.reduced (S (1.0f)), S (10.0f), S (1.6f));
-            g.setFont (Font (FontOptions (tfMono).withHeight (S (30.0f))));
+            g.drawRoundedRectangle (rr.reduced (S (1.0f)), S (8.0f), S (1.4f));
+            g.setFont (Font (FontOptions (tfMono).withHeight (S (21.0f))));
             g.setColour (red ? Colour (0xff140806) : ac);
-            g.drawText (b.text, rr, Justification::centred);
             if (b.id == bTunerMode)
             {
                 static const char* names[3] = { "MONO", "POLY", "STROBE" };
-                g.setFont (Font (FontOptions (tfMono).withHeight (S (16.0f))));
+                g.drawText (b.text, rr.withTrimmedBottom (rr.getHeight() * 0.38f).translated (0.0f, S (4.0f)), Justification::centred);
+                g.setFont (Font (FontOptions (tfMono).withHeight (S (13.0f))));
                 g.setColour (TC::grey().withAlpha (0.7f));
-                g.drawText (names[jlimit (0, 2, c.mode)], rr.withTrimmedTop (rr.getHeight() * 0.62f), Justification::centred);
+                g.drawText (names[jlimit (0, 2, c.mode)], rr.withTrimmedTop (rr.getHeight() * 0.58f), Justification::centredTop);
             }
+            else g.drawText (b.text, rr, Justification::centred);
         }
     }
 
@@ -1680,7 +1908,7 @@ private:
         else if (overlay == Overlay::params && presetMode)
         {
             for (int v = 0; v < kListRows * 2; ++v) if (itemRect (v).contains (p)) { hi = v; break; }
-            if (hi >= 0 && presetScroll * kListRows + hi >= plist.names.size()) hi = -1;
+            if (hi >= 0 && presetScroll * kListRows + hi >= presetTotal()) hi = -1;
         }
         else if (overlay == Overlay::params)
             for (int k = 0; k < params.size(); ++k) if (paramCell (k).contains (p)) { hp = k; break; }
@@ -1731,7 +1959,8 @@ private:
             {
                 // comme sur CHROMA : clic sur le nom du mode = mode suivant
                 const auto t = (p - tunerRect().getPosition()) / tunerScale();
-                if (t.y < 90.0f && t.x < 260.0f) proc.chromaNextMode();
+                if (tuningBox().expanded (6.0f).contains (t)) tuningMenu();          // comme sur CHROMA : clic sur le nom de l'accordage
+                else if (t.y < 90.0f && t.x < 260.0f) proc.chromaNextMode();
             }
             return;
         }
@@ -1755,7 +1984,14 @@ private:
         if (overlay == Overlay::params && presetMode)
         {
             for (int v = 0; v < kListRows * 2; ++v)
-                if (itemRect (v).contains (p)) { loadPluginPreset (presetScroll * kListRows + v); return; }
+                if (itemRect (v).contains (p))
+                {
+                    const int k = presetScroll * kListRows + v;
+                    if (k >= presetTotal()) return;
+                    if (e.mods.isPopupMenu()) { if (k < (int) upresets.size()) userPresetMenu (k); return; }
+                    clickPresetItem (k);
+                    return;
+                }
             return;
         }
         if (overlay == Overlay::params)
@@ -1908,7 +2144,7 @@ private:
         }
         else if (overlay == Overlay::params && presetMode)
         {
-            const int rows = (plist.names.size() + kListRows - 1) / kListRows;
+            const int rows = (presetTotal() + kListRows - 1) / kListRows;
             presetScroll = jlimit (0, jmax (0, rows - 2), presetScroll + dir);
         }
         else if (overlay == Overlay::params)
@@ -1950,11 +2186,13 @@ private:
             case bParamWindow:{ const int i = paramFxIndex(); if (const auto* f = paramFx()) eng.openWindow (i, ! f->open); break; }
             case bPagePrev:   if (presetMode) stepPluginPreset (-1); else { paramPage = jmax (0, paramPage - 1); pollParams (true); } break;
             case bPageNext:   if (presetMode) stepPluginPreset (1); else { ++paramPage; pollParams (true); } break;
-            case bPresets:    if (presetMode) presetMode = false; else openPresets (false); break;
-            case bParamMidi:  presetMode = false; midiView = ! midiView; paramPage = 0; pollParams (true); break;
+            case bPresets:    if (presetMode) { presetMode = false; cancelPresetName(); } else openPresets (false); break;
+            case bParamMidi:  presetMode = false; cancelPresetName(); midiView = ! midiView; paramPage = 0; pollParams (true); break;
             case bPresetRescan: openPresets (true); break;
             case bAddPicked:  addPicked(); break;
             case bClearPicked: picked.clear(); break;
+            case bTunerTunings: tuningMenu(); break;
+            case bPresetSave: startPresetSave (-1); break;
             case bTunerMute:  proc.chromaSetMute (! proc.chroma().muted); break;
             case bTunerMode:  proc.chromaNextMode(); break;
             case bTunerExit:  proc.chromaExit(); break;
@@ -1963,6 +2201,7 @@ private:
             case bPc:         eng.setProgramChange (! eng.programChange); break;
             default:
                 if (b >= bChip && b < bChip + kNumChips) setChip (b - bChip);
+                else if (b >= bFsColour && b < bFsColour + 4) colourMenu (b - bFsColour);
                 else if (b >= bBank && b < bBank + OctopusEngine::kBanks) eng.setBank (b - bBank);
                 else if (b >= bCard && b < bCard + 100)
                 {
@@ -1981,6 +2220,25 @@ private:
     }
 
     // enregistrement : jamais d'écrasement silencieux d'un preset existant
+    // couleur d'un footswitch (lettre lumineuse et case de l'écran, en mode PRESET)
+    void colourMenu (int f)
+    {
+        static const std::pair<const char*, juce::uint32> pal[] = {
+            { "Blue (default)", OctopusEngine::kDefaultFsColour }, { "Cyan", 0xff3ce0e8 }, { "Green", 0xff45e070 }, { "Lime", 0xffb6e83a },
+            { "Yellow", 0xffffe23a }, { "Amber", 0xffffb547 }, { "Orange", 0xffff7a2e }, { "Red", 0xffff4040 },
+            { "Pink", 0xffff5fb4 }, { "Purple", 0xffb07aff }, { "White", 0xfff2f4f8 } };
+        PopupMenu m;
+        m.addSectionHeader ("Footswitch " + fsLetter (f) + " colour");
+        int id = 1;
+        for (auto& c : pal) m.addColouredItem (id++, c.first, Colour (c.second), true, eng.fsColour (f) == c.second);
+        SafePointer<PedalView> sp (this);
+        m.showMenuAsync (PopupMenu::Options(), [sp, f] (int r)
+        {
+            if (sp == nullptr || r < 1 || r > (int) std::size (pal)) return;
+            sp->eng.setFsColour (f, pal[r - 1].second);
+        });
+    }
+
     void confirmSave (int idx)
     {
         if (! eng.preset (idx).saved) { eng.save (idx); return; }
@@ -2244,8 +2502,8 @@ private:
         for (int f = 0; f < 4; ++f)
         {
             const bool lit = eng.isReady() && eng.fsLit (f);
-            Colour col = kPresetLed;
-            if (eng.mode() == OctopusEngine::stompMode) { const int k = eng.fsKind (f); col = k >= 0 ? FxCat::colour (k) : kPresetLed; }
+            Colour col = Colour (eng.fsColour (f));
+            if (eng.mode() == OctopusEngine::stompMode) { const int k = eng.fsKind (f); col = k >= 0 ? FxCat::colour (k) : col; }
             if (lit || ledLevel[f] < 0.01f) ledColour[f] = col;                     // pendant l'extinction, la couleur reste
             const float target = lit ? 1.0f : 0.0f;
             const float before = ledLevel[f];
@@ -2378,3 +2636,19 @@ bool OctopusEditor::testBlockClicks (int slot, const Array<double>& downUp, doub
     return view->paramsOpen();
 }
 void OctopusEditor::screenHover (Point<float> unitPos) { view->simulateHover (unitPos); }
+
+int OctopusEditor::screenUserPreset (int op, const String& arg)
+{
+    auto& v = *view;
+    switch (op)
+    {
+        case 0: v.startPresetSave (-1); v.presetNameEd.setText (arg, dontSendNotification); break;
+        case 1: if (v.presetEdIndex < -1) v.startPresetSave (-1); v.presetNameEd.setText (arg, dontSendNotification); v.commitPresetName(); break;
+        case 2: v.loadUserPreset (arg.getIntValue()); break;
+        case 3: v.cancelPresetName(); v.upresets.clear(); v.userCur = -1; UserFxPresets::save (v.upPlugin, v.upresets); break;
+        default: break;
+    }
+    v.askRepaint (v.screenPx());
+    return (int) v.upresets.size();
+}
+void OctopusEditor::screenTuningMenu() { view->tuningMenu(); }

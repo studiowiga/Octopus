@@ -16,17 +16,22 @@ au minimum, affichée « 60 % », puis 75 % et 100 % plus grandes), écran sur p
   l'ordre des clics) puis ADD les insère tous dans la piste, dans cet ordre, en un seul point d'annulation.
 - **Presets de chaque plugin** (bouton PRESETS du panneau des paramètres) : presets d'usine et utilisateur de REAPER, numérotés,
   chargés d'un clic, flèches précédent / suivant. Pour lire les noms, chaque preset est chargé un instant puis l'état exact
-  du plugin est rétabli (vst_chunk / clap_chunk).
+  du plugin est rétabli (vst_chunk / clap_chunk). **SAVE USER** : presets utilisateur gardés par Octopus pour chaque plugin
+  (`Studio Wiga/Octopus/Plugin presets/<plugin>.xml` dans le dossier de données utilisateur, état exact du plugin), en tête de
+  liste avec une étoile ; clic droit : charger, remplacer, renommer, supprimer.
 - **Accordeur** : quand un bloc CHROMA est allumé, Octopus affiche l'écran de CHROMA (même dessin) et fait tourner le même
   moteur (TunerEngine de CHROMA) sur le son qui le traverse ; mode, La de référence et accordage lus dans CHROMA
-  (paramètres + état du plugin) ; boutons MUTE, MODE, EXIT.
+  (paramètres + état du plugin) ; écran un peu réduit, boutons TUNINGS, MUTE, MODE, EXIT. TUNINGS (ou clic sur le nom de
+  l'accordage) : presets d'accordage de CHROMA (favoris, usine par instrument, accordages perso de `library.xml`) ; le choix est
+  gardé par Octopus avec le projet et s'efface si l'accordage est changé dans CHROMA lui-même.
 - **Banks / presets** : 16 banks x 4 presets (1A à 16D). Un preset garde la chaîne complète (plugins, ordre, réglages,
   ON / OFF, assignations STOMP), au format de REAPER. SAVE (jamais d'écrasement sans confirmation), BANKS (charger,
-  enregistrer, renommer, copier / coller, effacer, exporter / importer un fichier `.octobank`).
+  enregistrer, renommer, copier / coller, effacer, exporter / importer un fichier `.octobank`, couleur de chaque footswitch A-D en mode PRESET). En-tête : PRESET, STOMP,
+  BANKS, SAVE.
 - **Rappel sans coupure inutile** : si le preset a la même suite de plugins que la chaîne actuelle, seuls les blocs dont les
   réglages diffèrent sont rechargés, les autres ne font que passer ON / OFF (changement quasi instantané). Sinon la chaîne est
   remplacée. Octopus n'est jamais recréé ni déplacé. Un plugin désinstallé est signalé, les autres sont placés correctement.
-- **Footswitchs A-D** : mode **PRESET** (rappellent les presets A-D de la bank affichée, lettre bleue) ou **STOMP**
+- **Footswitchs A-D** : mode **PRESET** (rappellent les presets A-D de la bank affichée, lettre dans la couleur choisie dans BANKS, bleu par défaut) ou **STOMP**
   (chacun bascule un ou plusieurs blocs, lettre de la couleur du bloc). Fonctionnement d'Echoflex (action à l'appui, bouton
   assombri), seule la lettre s'allume, en fondu.
 - **MIDI** (M-Vave Chocolate Plus) : MIDI learn au clic droit (footswitchs A-D, bank -, bank +, mode), momentané ou à
@@ -61,7 +66,7 @@ ombres selon la lumière en haut à gauche). Positions communes : `Layout.h`.
 
 ## Build et vérifications
 - GitHub Actions (`.github/workflows/build.yml`) : artefacts `Octopus-VST3-Windows` et `Octopus-macOS-VST3`, et job `tests`.
-- `tools/reaper_sim` : le pont REAPER testé contre une API de REAPER simulée (états de piste au format RPP) : 35 tests
+- `tools/reaper_sim` : le pont REAPER testé contre une API de REAPER simulée (états de piste au format RPP) : 36 tests
   (presets, rappel partiel, Octopus au milieu de la chaîne, effets d'entrée, plugin manquant, deux Octopus...).
 - `tools/render` : fenêtre compilée sous Linux sur une chaîne simulée, tests du moteur et captures (`design/renders/`).
 - `tools/host_check` : charge le VST3 compilé comme un hôte (paramètres, son inchangé, état, fenêtre).
@@ -77,3 +82,6 @@ v1.1.0 : taille par défaut = ancienne taille 100 % (affichée 60 %), 75 % et 10
   accordeur CHROMA dans Octopus ; ajout de plusieurs effets d'un coup ; presets usine / utilisateur de chaque plugin ; famille utilitaire en blanc.
 v1.1.1 : double-clic fiable (détecté par Octopus, la bascule d'un double-clic lent est défaite) ; noms des paramètres plus grands ;
   paramètres à crans réglés cran par cran ; paramètres MIDI derrière le bouton MIDI ; BYPASS à côté de la croix.
+v1.1.2 : presets utilisateur des plugins (SAVE USER) ; en-tête PRESET / STOMP séparés, SAVE après BANKS ; logo Studio Wiga plus petit
+  et centré entre le haut de la pédale et l'écran ; couleur des footswitchs A-D au choix (BANKS) ; accordeur plus compact et menu
+  TUNINGS avec les presets d'accordage de CHROMA.

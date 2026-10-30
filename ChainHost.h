@@ -93,6 +93,11 @@ public:
     virtual bool loadPreset (int index, int presetIndex, const juce::String& name) = 0;
     virtual bool stepPreset (int index, int dir) = 0;
 
+    // état complet d'un plugin (presets utilisateur enregistrés par Octopus) : clé "vst_chunk" / "clap_chunk"
+    // (état du plugin, base64) ou "params" (valeurs de tous les paramètres)
+    virtual bool getFxState (int index, juce::String& key, juce::String& data) = 0;
+    virtual bool setFxState (int index, const juce::String& key, const juce::String& data) = 0;
+
     // état d'un seul effet au format texte de REAPER (ChainChunk)
     virtual juce::String fxChunk (int index) = 0;
 
@@ -246,6 +251,21 @@ public:
         if (! ok (i)) return false;
         const auto p = presets (i, false);
         return loadPreset (i, (p.current + dir + p.count) % p.count, {});
+    }
+    bool getFxState (int i, juce::String& key, juce::String& data) override
+    {
+        if (! ok (i)) return false;
+        juce::StringArray v;
+        for (int p = 0; p < numParams (i); ++p) v.add (juce::String (getParam (i, p), 6));
+        key = "params"; data = v.joinIntoString (",");
+        return true;
+    }
+    bool setFxState (int i, const juce::String& key, const juce::String& data) override
+    {
+        if (! ok (i) || key != "params") return false;
+        auto v = juce::StringArray::fromTokens (data, ",", "");
+        for (int p = 0; p < juce::jmin (v.size(), numParams (i)); ++p) setParam (i, p, v[p].getDoubleValue());
+        return true;
     }
     juce::String fxChunk (int i) override
     {

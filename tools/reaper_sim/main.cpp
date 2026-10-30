@@ -465,6 +465,14 @@ int main()
         const int hb = eng.blocks()[0];
         check (bridge.paramSteps (hb, 0) == 0 && bridge.paramSteps (hb, 1) == 4 && bridge.paramSteps (hb, 2) == 2,
                "paramètres à crans : continu / 4 positions / interrupteur");
+        // preset utilisateur d'Octopus : état exact du plugin lu puis rétabli
+        holy.params = { 0.12, 0.34, 0.56 }; holy.presetIdx = -1;
+        String key, data;
+        const bool got = bridge.getFxState (hb, key, data);
+        holy.params = { 0.9, 0.9, 0.9 }; holy.presetIdx = 1;
+        const bool set = bridge.setFxState (hb, key, data);
+        check (got && set && key == "vst_chunk" && std::abs (holy.params[0] - 0.12) < 1e-9 && std::abs (holy.params[2] - 0.56) < 1e-9 && holy.presetIdx == -1,
+               "preset utilisateur d'Octopus : état du plugin lu (" + key + ") puis rétabli");
     }
 
     // la piste disparaît (supprimée) : plus prêt, pas de plantage

@@ -61,6 +61,11 @@ public:
     bool fsLit (int fs) const;
     int fsKind (int fs) const;              // famille du premier bloc commandé (couleur), -1 = aucun
 
+    // couleur de chaque footswitch (lettre lumineuse et case de l'écran en mode PRESET)
+    juce::uint32 fsColour (int fs) const { return fsCol[(size_t) juce::jlimit (0, kFs - 1, fs)]; }
+    void setFsColour (int fs, juce::uint32 c) { fsCol[(size_t) juce::jlimit (0, kFs - 1, fs)] = c; changed(); }
+    static constexpr juce::uint32 kDefaultFsColour = 0xff6fc8ff;
+
     bool isAssigned (int fs, const juce::String& guid) const { return stompGuids[fs].contains (guid); }
     void toggleAssign (int fs, const juce::String& guid);
     void clearAssign (int fs);
@@ -127,6 +132,7 @@ private:
     juce::Array<InstalledFx> installedCache;
     bool installedLoaded = false;
 
+    std::array<juce::uint32, kFs> fsCol { kDefaultFsColour, kDefaultFsColour, kDefaultFsColour, kDefaultFsColour };
     std::array<int, numTargets> cc;
     std::array<bool, numTargets> latch;
     std::array<bool, numTargets> ccPrev, paramPrev;
