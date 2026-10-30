@@ -66,3 +66,4 @@ v1.0.2 : les LED sont remplacées par les lettres A, B, C, D rétroéclairées a
 v1.0.3 : lettres moins lumineuses ; seul le tracé de la lettre s'allume (plus de tache de lumière sur la façade).
 v1.0.4 : lettres A-D un peu plus lumineuses.
 v1.0.5 : très léger halo autour des lettres allumées.
+v1.0.6 : halo des lettres allumées accentué (dégradé progressif qui épouse la lettre).

@@ -371,10 +371,10 @@ private:
 
         // seule la lettre s'éclaire : verre teinté rétroéclairé, intensité modérée, très léger débord lumineux sur son contour
         const float k = lvl;
-        // halo très discret qui épouse la forme de la lettre (contours de plus en plus larges et transparents)
-        for (float wdt : { 16.0f, 12.0f, 8.5f, 5.5f })
+        // halo discret qui épouse la forme de la lettre (contours de plus en plus larges et transparents)
+        for (float wdt = 28.0f; wdt > 5.0f; wdt -= 2.5f)
         {
-            g.setColour (col.withAlpha (0.022f * lvl));
+            g.setColour (col.withAlpha (0.024f * lvl));
             g.strokePath (p, PathStrokeType (wdt * s, PathStrokeType::curved, PathStrokeType::rounded));
         }
         g.setColour (col.withAlpha (0.06f * lvl));
