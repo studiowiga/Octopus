@@ -165,15 +165,20 @@ def rotated_source():
     w = np.clip((r - 90.0) / 4.0, 0, 1)[..., None]                          # bague moletée : photo d'origine
     return src * (1 - w) + rot * w
 
+# footswitch inox (photo fournie, vue de dessus) : écrou hexagonal avec un plat en haut, bouton brossé.
+# Repères mesurés sur la photo (1261 x 1247) : centre (625.5, 607), 1047 px entre les plats haut et bas.
+INOX_C = (625.5, 607.0)
+INOX_FLATS = 1047.0
+
 def footswitch(led_on):
-    src = rotated_source()
+    src = np.asarray(Image.open(os.path.join(ROOT, "design", "footswitch_inox_source.png")).convert("RGB")).astype(np.float64)
     n = round(FS_W * AS)
-    sc = FS_K * AS / 2.0
-    M = np.float32([[sc, 0, n / 2 - (150 + 2 * EF_CENTROID[0]) * sc], [0, sc, n / 2 - (150 + 2 * EF_CENTROID[1]) * sc]])
-    rgb = cv2.warpAffine(src, M, (n, n), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT)
-    t = np.radians(FS_ROT)                                                  # même rotation que la photo (sens trigonométrique à l'écran)
-    rpts = [((x - EF_CENTROID[0]) * np.cos(t) + (y - EF_CENTROID[1]) * np.sin(t), -(x - EF_CENTROID[0]) * np.sin(t) + (y - EF_CENTROID[1]) * np.cos(t)) for x, y in EF_PTS]
-    pts = np.array([[n / 2 + x * FS_K * AS * 0.992, n / 2 + y * FS_K * AS * 0.992] for x, y in rpts])
+    sc = FS_FLATS * AS / INOX_FLATS                                         # même taille d'écrou que l'ancien footswitch
+    M = np.float32([[sc, 0, n / 2 - INOX_C[0] * sc], [0, sc, n / 2 - INOX_C[1] * sc]])
+    rgb = cv2.warpAffine(src, M, (n, n), flags=cv2.INTER_AREA, borderMode=cv2.BORDER_REPLICATE)
+    # silhouette : hexagone régulier (plats en haut et en bas, sommets à gauche et à droite), bord légèrement rentré
+    fl = FS_FLATS * AS * 0.5 * 0.985; rv = fl * 2.0 / np.sqrt(3.0)
+    pts = np.array([[n / 2 + rv * np.cos(np.radians(k * 60)), n / 2 - rv * np.sin(np.radians(k * 60))] for k in range(6)])
     m = np.zeros((n * 4, n * 4), np.uint8); cv2.fillPoly(m, [np.round(pts * 4).astype(np.int32)], 255)
     a = cv2.resize(m, (n, n), interpolation=cv2.INTER_AREA).astype(np.float64) / 255.0
     a = cv2.GaussianBlur(a, (0, 0), 0.6)

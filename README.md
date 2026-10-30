@@ -2,7 +2,7 @@
 
 Plugin VST3 (Windows / macOS) **pour REAPER** : un écran façon multi-effet (inspiré du Quad Cortex mini) qui pilote
 la chaîne d'effets de la piste où il est inséré. Pédale sans jacks qui occupe toute la fenêtre (tailles 50 %, 60 %, 75 %,
-100 % ; taille par défaut au choix dans le menu, 60 % au départ), écran sur presque toute la façade, 4 footswitchs (celui d'Echoflex) surmontés de leur lettre A-D rétroéclairée.
+100 % ; taille par défaut au choix dans le menu, 60 % au départ), écran sur presque toute la façade, 4 footswitchs inox surmontés de leur lettre A-D rétroéclairée.
 
 ## Ce que fait Octopus
 - **L'écran montre la chaîne de la piste** (tous les effets sauf Octopus), en blocs colorés par famille
@@ -61,7 +61,7 @@ lourd dans `paint()` (caches du fond, des footswitchs et de l'éclairage des LED
 (redessin non servi en 1,5 s : moteur réappliqué), aucun appel à l'hôte ni allocation dans le thread audio.
 
 ## Visuel
-`python3 tools/make_art.py` génère `background.png` (boîtier graphite brossé sans jacks, lunette et vitre, logo Studio Wiga), `fs_off.png` / `fs_on.png` (footswitch d'Echoflex, photo réelle détourée,
+`python3 tools/make_art.py` génère `background.png` (boîtier graphite brossé sans jacks, lunette et vitre, logos Studio Wiga et OCTOPUS), `fs_off.png` / `fs_on.png` (footswitch inox, photo réelle détourée `design/footswitch_inox_source.png`,
 ombres selon la lumière en haut à gauche). Positions communes : `Layout.h`.
 
 ## Build et vérifications
@@ -94,3 +94,4 @@ v1.1.6 : bloc utilitaire allumé en blanc plein (icône sombre), bien distinct d
 v1.1.7 : blanc du bloc utilitaire allumé 5 % moins lumineux.
 v1.1.8 : nouveau logo OCTOPUS (pieuvre, « fx chain controller ») en haut à droite, en symétrie du logo Studio Wiga.
 v1.1.9 : logo OCTOPUS agrandi (54 unités de haut).
+v1.2.0 : nouveaux footswitchs inox (photo fournie, écrou plat en haut) ; blanc du bloc utilitaire allumé encore 5 % plus transparent.
