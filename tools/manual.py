@@ -112,6 +112,27 @@ T = {
         "Whatever you do on the Octopus screen happens <b>at the same time in the track's FX chain</b>: switching a block on or off, adding an effect, removing it, moving it, changing its parameters. And whatever you do directly in REAPER appears on the Octopus screen a moment later.",
         "On top of that, Octopus stores <b>16 banks of 4 presets</b> (1A to 16D) - each preset is a complete chain with its plug-ins, their order and all their settings - and gives you <b>4 footswitches</b> to recall presets (PRESET mode) or to switch groups of blocks (STOMP mode), with the mouse or a MIDI foot controller such as the M-Vave Chocolate Plus. When the CHROMA tuner block is switched on, Octopus shows CHROMA's screen and becomes the tuner.",
         "The sound passes through Octopus untouched (zero latency). Octopus works <b>in REAPER only</b>: REAPER gives VST3 plug-ins access to their track and to its API, which other DAWs do not. In another DAW the screen simply says so."],
+ feat_t="Features at a glance",
+ feat=["<b>Live view of the track's FX chain</b>: every insert of the track as a coloured block (family, icon, ON / OFF, open window, parallel, offline), 7 blocks per row, 3 rows on screen, scrolling beyond.",
+       "<b>Full control from the screen</b>: switch on / off, add one or several effects at once, remove, move by drag and drop, insert before / after, process in parallel, open the plug-in window.",
+       "<b>Parameters on screen</b>: 8 per page, large names, smooth sliders for continuous values and notched sliders for modes and switches, MIDI parameters behind a MIDI button, BYPASS next to the close button.",
+       "<b>Plug-in presets</b>: factory and REAPER user presets of each plug-in, plus your own user presets saved by Octopus (SAVE USER), with load, replace, rename and delete.",
+       "<b>64 chain presets</b> (16 banks x 4) saved in the project, with fast switching when only settings differ, copy / paste, rename, export / import of the banks.",
+       "<b>4 footswitches</b> in PRESET or STOMP mode, each with its backlit letter and light ring in the colour you choose (or the colour of its blocks in STOMP mode).",
+       "<b>Built-in tuner</b>: switch a CHROMA block on and Octopus becomes the tuner (MONO, POLY, STROBE), with CHROMA's tuning presets.",
+       "<b>MIDI foot controller</b>: MIDI learn of every footswitch, bank and mode command, momentary or latching, Program Change 1-64 for the presets.",
+       "<b>Safe by design</b>: every action is one REAPER undo point, the sound passes through untouched, no host call from the audio thread, window in 4 sizes (50 to 100 %) with a default size of your choice."],
+ more_t="Menus and details",
+ more=[("Right-click a block", "<b>Bypass / Enable</b> - <b>Parameters on screen</b> - <b>Open / Close plug-in window</b> (the floating window of REAPER) - <b>Assign to footswitch (STOMP) A-D</b>: tick the footswitches that switch this block - <b>Process in parallel with previous</b> (REAPER 7 parallel FX: the block is fed with the same signal as the previous one, marked ||) - <b>Move</b>: left, right, to the start, to the end - <b>Insert an effect before / after</b>: opens ADD AN EFFECT at that place - <b>Remove</b>."),
+       ("Right-click the screen", "On an empty part of the screen: <b>Add an effect</b>, <b>Save the chain...</b>, <b>Banks...</b>, the <b>MIDI</b> menu (learn, latching, reset) and <b>Plugin size</b>. Right-click outside the screen (on the pedal) gives the same MIDI and size menus."),
+       ("Header", "From left to right: the preset label (1A ... 16D, or -- for a chain that is not a saved preset), its name with <b>EDITED</b> when the chain differs from it, the <b>status line</b> (track name, last action, warnings such as a missing plug-in), the <b>BANK</b> arrows, <b>PRESET</b> and <b>STOMP</b>, <b>BANKS</b> and <b>SAVE</b>."),
+       ("Long chains", "Beyond 21 effects, the mouse wheel scrolls the rows; the rows shown appear at the bottom right (for example 1-3 / 4) with small arrows. When you drag a block near the top or bottom edge, the screen scrolls by itself."),
+       ("Which chain is shown", "Octopus controls the chain it is inserted in: the track FX chain, or the record input FX chain if you insert it there. It finds itself in the chain with a token of its own (parameter <i>Octopus ID</i>), so you can rename it, move it or use several Octopus on different tracks. It never removes or moves itself."),
+       ("Missing plug-ins", "If a preset contains a plug-in that is not installed on this computer, the status line names it and the other effects are loaded in their right place, in the right order.")],
+ flow_t="9. Step by step",
+ flow=[("Build your first preset", "1. Insert Octopus first on the guitar track. 2. Click <b>+</b>, click the plug-ins you want in the order of the chain (for example CHROMA, NGATE, Crycat, Doorn, Genome, ECHOFLEX, Holyverb), then <b>ADD</b>. 3. Set each block (double-click). 4. <b>SAVE</b> &gt; Save as... &gt; Bank 1 &gt; 1A. 5. Switch a few blocks on or off, change a delay time, and save it as 1B: switching between 1A and 1B is now almost instant."),
+       ("Prepare a live set", "Give one bank to each song (or one preset per part of a song). Rename the presets in BANKS so that the footswitch cells show readable names, choose a colour for each footswitch in BANKS &gt; FOOTSWITCH COLOURS, and keep a copy of everything with EXPORT...."),
+       ("Play with a MIDI pedalboard", "In REAPER, enable the MIDI input of the track and arm it (or turn monitoring on). Right-click footswitch A &gt; MIDI Learn and press the first switch of your pedalboard; do the same for B, C, D and, if you have more switches, for Bank down / up and the mode. With a Program Change pedalboard, nothing to learn: PC 1-64 recall 1A-16D directly.")],
  inst_t="2. Installation",
  inst=[("Windows", "Copy <b>Octopus.vst3</b> (the whole folder) into <b>C:\\Program Files\\Common Files\\VST3</b>."),
        ("macOS", "Copy <b>Octopus.vst3</b> into <b>/Library/Audio/Plug-Ins/VST3</b> (or ~/Library/Audio/Plug-Ins/VST3). The build is signed ad hoc: if macOS blocks it, open System Settings &gt; Privacy &amp; Security and allow it, or run <i>xattr -cr</i> on the file."),
@@ -170,13 +191,13 @@ T = {
  win_t="8. Window",
  win=["The pedal fills the whole window (no jacks on the sides). Right-click outside the screen (or in the menus of the screen) &gt; <b>Plugin size</b>: <b>50 %</b>, <b>60 %</b>, <b>75 %</b> and <b>100 %</b>; the default size is marked <i>(default)</i>. <b>Default size (new windows)</b> chooses the size at which every Octopus window opens (60 % until you change it; the choice is common to all your projects and the current window takes it at once). You can also drag the bottom-right corner (proportions are kept), down to 50 %. A size chosen for one Octopus is saved with the project.",
       "The <b>status line</b> under the preset name shows the track name, or the last action (preset loaded, effect added, MIDI learn...)."],
- tips_t="9. Tips",
+ tips_t="10. Tips",
  tips=["Insert Octopus <b>first</b> on the guitar track; your tuner (CHROMA), noise gate, pedals, Two Notes Genome and ambiences follow. Octopus passes the sound unchanged, so its position does not change the tone.",
        "For a live rig, build one chain with all the effects you need and save variations of it (blocks ON / OFF, different settings): switching between these presets is almost instant because only what differs is reloaded.",
        "Use STOMP mode inside a song to switch drive, delay or reverb groups, and PRESET mode between songs.",
        "Keep a backup of your banks with EXPORT... and IMPORT them in a new project.",
        "Use REAPER's undo freely: every Octopus action, including a preset recall, is a single undo point."],
- tech_t="10. Specifications",
+ tech_t="11. Specifications",
  tech=[["Format", "VST3 (Windows 64-bit, macOS universal)"], ["Version", VERSION], ["Host", "REAPER 6.37 or newer (installed plug-in list: REAPER 7); inactive in other DAWs"],
        ["Audio", "Mono or stereo, passed through unchanged, 0 samples latency"], ["Chain", "Track FX chain or record input FX chain of the track where Octopus is inserted"],
        ["Presets", "16 banks x 4 presets, complete chains in REAPER's format, saved in the project, .octobank export / import; factory / user presets of each plug-in"],
@@ -190,6 +211,27 @@ T = {
         "Tout ce que vous faites sur l'écran d'Octopus se fait <b>en même temps dans la chaîne d'effets de la piste</b> : allumer ou couper un bloc, ajouter un effet, le supprimer, le déplacer, régler ses paramètres. Et ce que vous faites directement dans REAPER apparaît un instant plus tard sur l'écran d'Octopus.",
         "Octopus garde en plus <b>16 banks de 4 presets</b> (1A à 16D) - chaque preset est une chaîne complète avec ses plugins, leur ordre et tous leurs réglages - et vous donne <b>4 footswitchs</b> pour rappeler les presets (mode PRESET) ou basculer des groupes de blocs (mode STOMP), à la souris ou avec un pédalier MIDI comme la M-Vave Chocolate Plus. Quand le bloc accordeur CHROMA est allumé, Octopus affiche l'écran de CHROMA et devient l'accordeur.",
         "Le son traverse Octopus sans modification (latence nulle). Octopus fonctionne <b>uniquement dans REAPER</b> : REAPER donne aux plugins VST3 l'accès à leur piste et à son API, ce que les autres DAW ne font pas. Dans un autre DAW, l'écran l'indique simplement."],
+ feat_t="Fonctions en bref",
+ feat=["<b>Vue en direct de la chaîne d'effets de la piste</b> : chaque insert sous forme de bloc coloré (famille, icône, ON / OFF, fenêtre ouverte, parallèle, hors ligne), 7 blocs par rangée, 3 rangées à l'écran, défilement au-delà.",
+       "<b>Tout se pilote depuis l'écran</b> : allumer / couper, ajouter un ou plusieurs effets d'un coup, supprimer, déplacer par glisser-déposer, insérer avant / après, traiter en parallèle, ouvrir la fenêtre du plugin.",
+       "<b>Paramètres à l'écran</b> : 8 par page, noms en grand, curseurs continus pour les valeurs libres et curseurs à crans pour les modes et interrupteurs, paramètres MIDI derrière un bouton MIDI, BYPASS à côté de la croix.",
+       "<b>Presets des plugins</b> : presets d'usine et utilisateur de REAPER pour chaque plugin, plus vos propres presets utilisateur enregistrés par Octopus (SAVE USER), avec chargement, remplacement, renommage et suppression.",
+       "<b>64 presets de chaîne</b> (16 banks x 4) enregistrés dans le projet, changement rapide quand seuls les réglages diffèrent, copier / coller, renommer, export / import des banks.",
+       "<b>4 footswitchs</b> en mode PRESET ou STOMP, chacun avec sa lettre rétroéclairée et son anneau lumineux dans la couleur choisie (ou celle de ses blocs en mode STOMP).",
+       "<b>Accordeur intégré</b> : allumez un bloc CHROMA et Octopus devient l'accordeur (MONO, POLY, STROBE), avec les presets d'accordage de CHROMA.",
+       "<b>Pédalier MIDI</b> : MIDI learn de chaque footswitch, des commandes de bank et du mode, momentané ou à accrochage, Program Change 1-64 pour les presets.",
+       "<b>Sûr par conception</b> : chaque action est un seul point d'annulation de REAPER, le son passe sans modification, aucun appel à l'hôte depuis le thread audio, fenêtre en 4 tailles (50 à 100 %) avec une taille par défaut à votre choix."],
+ more_t="Menus et détails",
+ more=[("Clic droit sur un bloc", "<b>Bypass / Enable</b> - <b>Parameters on screen</b> (paramètres à l'écran) - <b>Open / Close plug-in window</b> (fenêtre flottante de REAPER) - <b>Assign to footswitch (STOMP) A-D</b> : cochez les footswitchs qui basculent ce bloc - <b>Process in parallel with previous</b> (effets parallèles de REAPER 7 : le bloc reçoit le même signal que le précédent, repère ||) - <b>Move</b> : à gauche, à droite, au début, à la fin - <b>Insert an effect before / after</b> : ouvre ADD AN EFFECT à cet endroit - <b>Remove</b> (supprimer)."),
+       ("Clic droit sur l'écran", "Sur une partie vide de l'écran : <b>Add an effect</b>, <b>Save the chain...</b>, <b>Banks...</b>, le menu <b>MIDI</b> (learn, accrochage, remise à zéro) et <b>Plugin size</b>. Un clic droit hors de l'écran (sur la pédale) donne les mêmes menus MIDI et taille."),
+       ("En-tête", "De gauche à droite : l'étiquette du preset (1A ... 16D, ou -- pour une chaîne qui n'est pas un preset enregistré), son nom avec <b>EDITED</b> quand la chaîne en diffère, la <b>ligne d'état</b> (nom de la piste, dernière action, avertissements comme un plugin manquant), les flèches <b>BANK</b>, <b>PRESET</b> et <b>STOMP</b>, <b>BANKS</b> et <b>SAVE</b>."),
+       ("Longues chaînes", "Au-delà de 21 effets, la molette fait défiler les rangées ; les rangées affichées s'indiquent en bas à droite (par exemple 1-3 / 4) avec de petites flèches. Quand vous glissez un bloc près du bord haut ou bas, l'écran défile tout seul."),
+       ("Quelle chaîne est affichée", "Octopus pilote la chaîne dans laquelle il est inséré : la chaîne d'effets de la piste, ou la chaîne d'effets d'entrée (enregistrement) si vous l'y insérez. Il se retrouve dans la chaîne grâce à un jeton qui lui est propre (paramètre <i>Octopus ID</i>) : vous pouvez le renommer, le déplacer ou utiliser plusieurs Octopus sur des pistes différentes. Il ne se supprime ni ne se déplace jamais lui-même."),
+       ("Plugins manquants", "Si un preset contient un plugin qui n'est pas installé sur cet ordinateur, la ligne d'état le nomme et les autres effets sont chargés à leur place, dans le bon ordre.")],
+ flow_t="9. Pas à pas",
+ flow=[("Créer votre premier preset", "1. Insérez Octopus en premier sur la piste guitare. 2. Cliquez sur <b>+</b>, cliquez les plugins voulus dans l'ordre de la chaîne (par exemple CHROMA, NGATE, Crycat, Doorn, Genome, ECHOFLEX, Holyverb), puis <b>ADD</b>. 3. Réglez chaque bloc (double-clic). 4. <b>SAVE</b> &gt; Save as... &gt; Bank 1 &gt; 1A. 5. Allumez ou coupez quelques blocs, changez un temps de delay et enregistrez en 1B : passer de 1A à 1B est maintenant quasi instantané."),
+       ("Préparer un concert", "Donnez une bank à chaque morceau (ou un preset par partie de morceau). Renommez les presets dans BANKS pour que les cases des footswitchs affichent des noms lisibles, choisissez une couleur par footswitch dans BANKS &gt; FOOTSWITCH COLOURS, et gardez une copie de tout avec EXPORT...."),
+       ("Jouer avec un pédalier MIDI", "Dans REAPER, activez l'entrée MIDI de la piste et armez-la (ou activez le monitoring). Clic droit sur le footswitch A &gt; MIDI Learn, puis appuyez sur le premier commutateur du pédalier ; faites de même pour B, C, D et, si vous avez plus de commutateurs, pour Bank down / up et le mode. Avec un pédalier en Program Change, rien à apprendre : PC 1-64 rappellent directement 1A-16D.")],
  inst_t="2. Installation",
  inst=[("Windows", "Copiez <b>Octopus.vst3</b> (tout le dossier) dans <b>C:\\Program Files\\Common Files\\VST3</b>."),
        ("macOS", "Copiez <b>Octopus.vst3</b> dans <b>/Library/Audio/Plug-Ins/VST3</b> (ou ~/Library/Audio/Plug-Ins/VST3). Le plugin est signé localement : si macOS le bloque, autorisez-le dans Réglages Système &gt; Confidentialité et sécurité, ou lancez <i>xattr -cr</i> sur le fichier."),
@@ -248,13 +290,13 @@ T = {
  win_t="8. Fenêtre",
  win=["La pédale occupe toute la fenêtre (pas de jacks sur les côtés). Clic droit hors de l'écran (ou dans les menus de l'écran) &gt; <b>Plugin size</b> : <b>50 %</b>, <b>60 %</b>, <b>75 %</b> et <b>100 %</b> ; la taille par défaut porte la mention <i>(default)</i>. <b>Default size (new windows)</b> choisit la taille à laquelle s'ouvrent toutes les fenêtres d'Octopus (60 % tant que vous ne la changez pas ; ce choix vaut pour tous vos projets et la fenêtre actuelle le prend tout de suite). On peut aussi tirer le coin en bas à droite (proportions conservées), jusqu'à 50 %. Une taille choisie pour un Octopus est mémorisée avec le projet.",
       "La <b>ligne d'état</b>, sous le nom du preset, affiche le nom de la piste ou la dernière action (preset chargé, effet ajouté, MIDI learn...)."],
- tips_t="9. Conseils d'utilisation",
+ tips_t="10. Conseils d'utilisation",
  tips=["Insérez Octopus <b>en premier</b> sur la piste guitare ; votre accordeur (CHROMA), le noise gate, les pédales, Two Notes Genome et les ambiances suivent. Octopus laisse passer le son tel quel : sa position ne change pas le son.",
        "Pour la scène, construisez une chaîne avec tous les effets dont vous avez besoin et enregistrez-en des variantes (blocs ON / OFF, réglages différents) : passer d'un de ces presets à l'autre est quasi instantané car seul ce qui diffère est rechargé.",
        "Utilisez le mode STOMP dans un morceau pour basculer des groupes drive, delay ou reverb, et le mode PRESET entre les morceaux.",
        "Gardez une copie de vos banks avec EXPORT... et importez-les dans un nouveau projet avec IMPORT....",
        "L'annulation de REAPER reste votre amie : chaque action d'Octopus, rappel de preset compris, est un seul point d'annulation."],
- tech_t="10. Caractéristiques techniques",
+ tech_t="11. Caractéristiques techniques",
  tech=[["Format", "VST3 (Windows 64 bits, macOS universel)"], ["Version", VERSION], ["Hôte", "REAPER 6.37 ou plus récent (liste des plugins installés : REAPER 7) ; inactif dans les autres DAW"],
        ["Audio", "Mono ou stéréo, transmis sans modification, latence de 0 échantillon"], ["Chaîne", "Chaîne d'effets ou effets d'entrée (enregistrement) de la piste où Octopus est inséré"],
        ["Presets", "16 banks x 4 presets, chaînes complètes au format de REAPER, enregistrés dans le projet, export / import .octobank ; presets usine / utilisateur de chaque plugin"],
@@ -308,11 +350,11 @@ def section(lang):
     f.append(Cover(t))
     f.append(PageBreak())
     f.append(P(t["intro_t"], "h1")); f += [P(x) for x in t["intro"]]
+    f.append(P(t["feat_t"], "h2")); f += bullets(t["feat"])
     f.append(P(t["inst_t"], "h1"))
     for h, x in t["inst"]: f.append(P(h, "h2")); f.append(P(x))
-    f.append(PageBreak())
-    f.append(P(t["ov_t"], "h1")); f.append(img(annotated, W * 0.80)); f.append(Spacer(1, 3 * mm))
-    f.append(table(t["ov_rows"], [10 * mm, 38 * mm, W - 48 * mm]))
+    f.append(KeepTogether([P(t["ov_t"], "h1"), img(annotated, W * 0.80), Spacer(1, 3 * mm),
+                           table(t["ov_rows"], [10 * mm, 38 * mm, W - 48 * mm])]))
     f.append(PageBreak())
     f.append(P(t["ctl_t"], "h1"))
     for h, x in t["ctl"]: f.append(P(h, "h2")); f.append(P(x))
@@ -321,6 +363,8 @@ def section(lang):
     pair.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
     f.append(KeepTogether([Spacer(1, 3 * mm), pair]))
     f.append(captioned(scr_presets, W * 0.48, t["scr_cap_pre"]))
+    f.append(P(t["more_t"], "h2"))
+    for h, x in t["more"]: f.append(P("<b>" + h + "</b>", "p")); f.append(P(x))
     f.append(P(t["tun_t"], "h2")); f += [P(x) for x in t["tun"]]
     tpair = Table([[img(scr_tmono, W * 0.48), img(scr_tpoly, W * 0.48)]], colWidths=[W * 0.5, W * 0.5])
     tpair.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
@@ -334,6 +378,8 @@ def section(lang):
     f.append(Spacer(1, 2 * mm)); f.append(table([t["midi_hdr"]] + t["midi_rows"], [40 * mm, 32 * mm, W - 72 * mm])); f.append(Spacer(1, 3 * mm))
     f += bullets(t["midi2"])
     f.append(P(t["win_t"], "h1")); f += [P(x) for x in t["win"]]
+    f.append(P(t["flow_t"], "h1"))
+    for h, x in t["flow"]: f.append(P(h, "h2")); f.append(P(x))
     f.append(P(t["tips_t"], "h1")); f += bullets(t["tips"])
     f.append(KeepTogether([P(t["tech_t"], "h1"), table(t["tech"], [30 * mm, W - 30 * mm], header=False)]))
     f.append(PageBreak())
