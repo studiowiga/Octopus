@@ -14,6 +14,19 @@ AS = 2
 src = np.asarray(Image.open(os.path.join(ROOT, "design", "frame_photo.jpg")).convert("RGB")).astype(np.float64)
 H, W = src.shape[:2]
 
+# redressement : la photo est prise un peu en plongée, la pédale y est plus large en bas qu'en haut. Les arêtes claires
+# des côtés (gauche x 28 -> 17, droite x 1387 -> 1399 entre y 40 et y 900) deviennent verticales : chaque ligne est
+# remise à la largeur du milieu de la pédale, autour de son axe.
+def edges(y):
+    return 28.5 - 0.0107 * (y - 40.0), 1387.0 + 0.01325 * (y - 40.0)
+_l0, _r0 = edges(470.0); C0, W0 = (_l0 + _r0) / 2, _r0 - _l0
+_yy, _xx = np.mgrid[0:H, 0:W].astype(np.float32)
+_l, _r = edges(_yy)
+map_x = ((_l + _r) / 2 + (_xx - C0) * (_r - _l) / W0).astype(np.float32)
+src = cv2.remap(src.astype(np.float32), map_x, _yy, cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REPLICATE).astype(np.float64)
+if os.environ.get("OCTO_MEASURE"):
+    cv2.imwrite("/tmp/frame_rectified.png", np.clip(src[..., ::-1], 0, 255).astype(np.uint8)); raise SystemExit
+
 def smooth(e0, e1, v):
     t = np.clip((v - e0) / (e1 - e0), 0, 1)
     return t * t * (3 - 2 * t)
@@ -38,13 +51,13 @@ def patch_rows(img, x0, y0, x1, y1, dx, feather=4, detail=1.0):
     img[y0 - feather:y1 + feather, x0 - feather:x1 + feather] = reg * (1 - w) + srcp * w
 
 img = src.copy()
-patch_rows(img, 64, 40, 245, 68, 260)                          # logo Studio Wiga
-patch_rows(img, 1100, 16, 1350, 90, -255, feather=14, detail=0.8)   # logo OCTOPUS
-for cx in (223.5, 542.0, 866.0, 1186.5):                      # lettres A-D gravées (le plugin les dessine, allumées ou non)
+patch_rows(img, 59, 40, 241, 68, 260)                          # logo Studio Wiga
+patch_rows(img, 1103, 16, 1356, 90, -258, feather=14, detail=0.8)   # logo OCTOPUS
+for cx in (226.5, 543.0, 864.5, 1183.0):                      # lettres A-D gravées (le plugin les dessine, allumées ou non)
     patch_rows(img, int(cx - 15), 792, int(cx + 15), 822, 70)
 
 # vitre : vidée (presque noire), coins arrondis comme l'ouverture de la photo
-GX0, GY0, GX1, GY1, GR = 72.0, 109.0, 1345.0, 769.0, 14.0
+GX0, GY0, GX1, GY1, GR = 71.0, 108.0, 1345.0, 769.0, 14.0
 yy, xx = np.mgrid[0:H, 0:W].astype(np.float64) + 0.5
 def sd_rr(x, y, x0, y0, x1, y1, r):
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
@@ -64,18 +77,18 @@ removed = sum(b - a for a, b in CUTS)
 W2 = W - removed
 assert img.shape[1] == W2, img.shape
 
-# 2x, détourage du boîtier (photo : boîtier x 12..1409, y 3..968, coins de rayon 42)
+# 2x, détourage du boîtier (photo redressée : boîtier x 12..1403, y 3..968, coins de rayon 42)
 big = cv2.resize(img, (W2 * AS, H * AS), interpolation=cv2.INTER_LANCZOS4)
 yy, xx = (np.mgrid[0:H * AS, 0:W2 * AS].astype(np.float64) + 0.5) / AS
-alpha = np.clip(0.5 - sd_rr(xx, yy, 12.0, 3.0, 1409.0 - removed, 968.0, 42.0) * AS, 0, 1)
+alpha = np.clip(0.5 - sd_rr(xx, yy, 12.0, 3.0, 1403.0 - removed, 968.0, 42.0) * AS, 0, 1)
 out = Image.fromarray(np.dstack([np.clip(big, 0, 255), alpha * 255]).astype(np.uint8), "RGBA")
 
-# logo Studio Wiga net, à la place de celui de la photo (x 69..239, centré à y 53.5)
+# logo Studio Wiga net, à la place de celui de la photo (x 64..235, centré à y 53.5)
 logo = Image.open(os.path.join(ROOT, "design", "logo_studio_wiga_blanc.png")).convert("RGBA")
-lw = int(170 * AS); lh = round(logo.height * lw / logo.width)
+lw = int(171 * AS); lh = round(logo.height * lw / logo.width)
 logo = logo.resize((lw, lh), Image.LANCZOS)
 la = np.asarray(logo).astype(np.float64); la[..., 3] *= 0.95
-out.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(69 * AS), int(53.5 * AS) - lh // 2))
+out.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(64 * AS), int(53.5 * AS) - lh // 2))
 
 out.save(os.path.join(ROOT, "background.png"), optimize=True)
 print("background.png", out.size, "repère", W2, "x", H)

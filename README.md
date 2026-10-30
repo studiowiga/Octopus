@@ -103,3 +103,4 @@ v1.2.5 : étiquette du preset (1A...) dans la couleur de son footswitch ; clic s
 v1.2.6 : nouveau boîtier d'après le design fourni : acier brossé anthracite au brossage fin, liserés usinés clairs sur le pourtour et autour de l'écran.
 v1.2.7 : texture d'acier brossé plus réaliste (tools/brushed.py : lignes de brossage multi-échelles sur toute la largeur, rares rayures, reflet anisotrope en bandes verticales douces).
 v1.3.0 : boîtier repris du visuel fourni (photo, footswitchs compris), écran du plugin dans son ouverture, lettres A-D et anneaux lumineux dessinés par le plugin sur les footswitchs de la photo ; repère 1267 x 981 (fenêtre un peu plus haute).
+v1.3.1 : photo du boîtier redressée (prise un peu en plongée) : côtés de la pédale parfaitement verticaux, aussi larges en haut qu'en bas.
