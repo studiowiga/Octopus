@@ -6,7 +6,7 @@ if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "" FORCE)
 endif()
 
-project(WigaOctopus VERSION 1.2.0)
+project(WigaOctopus VERSION 1.2.1)
 
 include(FetchContent)
 FetchContent_Declare(JUCE
@@ -17,7 +17,7 @@ FetchContent_MakeAvailable(JUCE)
 
 # images and fonts are embedded into the plugin (no external file needed at runtime)
 juce_add_binary_data(OctopusAssets SOURCES
-  background.png fs_off.png fs_on.png
+  background.png fs_off.png fs_on.png design/logo_octopus_blanc.png
   fonts/Poppins-Regular.ttf fonts/Poppins-Medium.ttf fonts/Poppins-Bold.ttf fonts/IBMPlexMono-SemiBold.ttf)
 
 # Octopus drives REAPER through its VST3 extension (IReaperHostApplication) : VST3 only

@@ -22,11 +22,12 @@ Hv = (L + np.array([0, 0, 1.0])); Hv /= np.linalg.norm(Hv)
 BOX = (14, 12, 1226, 916, 46)                   # boîtier x0 y0 x1 y1 rayon (sans jacks : il occupe toute la fenêtre)
 BEZEL = (53, 90, 1187, 767, 22)                 # lunette de l'écran (presque toute la façade, comme un Quad Cortex)
 GLASS = (67, 104, 1173, 753, 12)                # vitre (zone affichée par le plugin) : 1106 x 649 (écran 1064 x 624 x 1.0395)
-FS_Y = 858.0
+FS_Y = 846.0                                    # remonté (place pour l'anneau lumineux autour de l'écrou)
 FS_X = (202.1, 480.7, 759.3, 1037.9)            # alignés sur les 4 cases du bas de l'écran
-LED_DX, LED_Y = 0.0, 792.0                      # lettre lumineuse (A-D) au-dessus du footswitch, face à un plat de l'écrou
+LED_DX, LED_Y = 0.0, 781.0                      # lettre lumineuse (A-D) au-dessus du footswitch, face à un plat de l'écrou
 FS_ROT = 30.0                                   # écrou tourné de 30° : un plat en haut, sous la LED
-FS_FLATS = 80.0                                 # largeur entre plats de l'écrou du footswitch
+FS_FLATS = 76.0                                 # largeur entre plats de l'écrou du footswitch
+RING_R0, RING_R1 = 46.5, 52.0                   # anneau lumineux (diffuseur) autour de l'écrou, comme la Phase 90
 
 def sd_round_rect(x, y, r):
     """ distance signée (unités) à un rectangle arrondi (négative à l'intérieur) """
@@ -111,13 +112,41 @@ olog = Image.open(os.path.join(ROOT, "design", "logo_octopus_blanc.png")).conver
 ohh = int(54 * AS); oww = round(olog.width * ohh / olog.height)
 olog = olog.resize((oww, ohh), Image.LANCZOS)
 oa = np.asarray(olog).astype(np.float64); oa[..., 3] *= 0.94
-im.alpha_composite(Image.fromarray(oa.astype(np.uint8), "RGBA"), ((W_U - 66) * AS - oww, int(51 * AS) - ohh // 2))
+# (le logo OCTOPUS n'est plus incrusté dans le fond : le plugin le dessine lui-même à la taille exacte de l'écran, pour qu'il reste net ;
+#  position : Layout.h, logoOctopus = bord droit 1174, 54 de haut, centré à 51)
+_ = (olog, oa)
 
 logo = Image.open(os.path.join(ROOT, "design", "logo_studio_wiga_blanc.png")).convert("RGBA")
 lw = int(140 * AS); lh = round(logo.height * lw / logo.width)
 logo = logo.resize((lw, lh), Image.LANCZOS)
 la = np.asarray(logo).astype(np.float64); la[..., 3] *= 0.94
 im.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"), (int(66 * AS), int(51 * AS) - lh // 2))     # centré en hauteur entre le haut du boîtier (12) et la lunette (90)
+
+# anneau diffuseur autour de chaque footswitch (éteint : verre dépoli gris dans un creux de la façade ;
+# allumé : le plugin l'éclaire dans la couleur du footswitch, avec son halo)
+ring_l = np.zeros((H, W, 4))
+for fx in FS_X:
+    d = np.hypot(ux - fx, uy - FS_Y)
+    ang = np.arctan2(uy - FS_Y, ux - fx)
+    lit = 0.5 - 0.5 * np.sin(ang + np.radians(45))            # face éclairée en haut à gauche
+    groove = smooth(RING_R0 - 2.2, RING_R0 - 1.0, d) * (1 - smooth(RING_R1 + 1.0, RING_R1 + 2.2, d))
+    glassr = smooth(RING_R0 - 0.4, RING_R0 + 0.6, d) * (1 - smooth(RING_R1 - 0.6, RING_R1 + 0.4, d))
+    # creux sombre
+    a_g = groove * 0.85
+    ring_l[..., :3] = ring_l[..., :3] * (1 - a_g[..., None]) + np.array([10, 11, 14])[None, None, :] * a_g[..., None]
+    ring_l[..., 3] = np.maximum(ring_l[..., 3], a_g)
+    # verre dépoli : gris, un peu plus clair vers la lumière, reflet fin sur le bord intérieur
+    t = (d - RING_R0) / (RING_R1 - RING_R0)
+    base = 58 + 26 * lit + 10 * np.exp(-((t - 0.35) / 0.25) ** 2)
+    col = np.dstack([base, base * 1.01, base * 1.06])
+    ring_l[..., :3] = ring_l[..., :3] * (1 - glassr[..., None]) + col * glassr[..., None]
+    ring_l[..., 3] = np.maximum(ring_l[..., 3], glassr)
+    # arête claire sur le bord extérieur bas droit du creux
+    edge = np.exp(-((d - (RING_R1 + 1.6)) / 0.7) ** 2) * (1 - lit) * 0.35
+    ring_l[..., :3] = ring_l[..., :3] * (1 - edge[..., None]) + 200 * edge[..., None]
+    ring_l[..., 3] = np.maximum(ring_l[..., 3], edge)
+ring_img = Image.fromarray(np.dstack([np.clip(ring_l[..., :3], 0, 255), np.clip(ring_l[..., 3] * 255, 0, 255)]).astype(np.uint8), "RGBA")
+im.alpha_composite(ring_img)
 
 # lettres des footswitchs : lettres rétroéclairées dessinées par le plugin au-dessus de chaque footswitch (à la place des LED)
 

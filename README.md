@@ -95,3 +95,4 @@ v1.1.7 : blanc du bloc utilitaire allumé 5 % moins lumineux.
 v1.1.8 : nouveau logo OCTOPUS (pieuvre, « fx chain controller ») en haut à droite, en symétrie du logo Studio Wiga.
 v1.1.9 : logo OCTOPUS agrandi (54 unités de haut).
 v1.2.0 : nouveaux footswitchs inox (photo fournie, écrou plat en haut) ; blanc du bloc utilitaire allumé encore 5 % plus transparent.
+v1.2.1 : logo OCTOPUS dessiné par le plugin à la taille exacte (net à toutes les tailles) ; footswitchs remontés, anneau lumineux autour de chaque footswitch (diffuseur gris éteint, couleur du footswitch allumé, avec halo, comme la Phase 90).

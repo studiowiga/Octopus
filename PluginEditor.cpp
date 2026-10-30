@@ -48,6 +48,34 @@ namespace
         float pixelsPerUnit() const { return img.isValid() ? scale : kAsset; }
     };
 
+    // réduction nette d'une grande image : divisions par 2 successives (moyenne de 4 pixels), puis dernier pas en haute qualité
+    Image crispRescale (Image im, int w, int h)
+    {
+        if (! im.isValid() || w <= 0 || h <= 0) return {};
+        im = im.convertedToFormat (Image::ARGB);
+        while (im.getWidth() >= w * 2 && im.getHeight() >= h * 2)
+        {
+            const int nw = im.getWidth() / 2, nh = im.getHeight() / 2;
+            Image half (Image::ARGB, nw, nh, true);
+            const Image::BitmapData sd (im, Image::BitmapData::readOnly);
+            Image::BitmapData dd (half, Image::BitmapData::writeOnly);
+            for (int y = 0; y < nh; ++y)
+                for (int x = 0; x < nw; ++x)
+                {
+                    int acc[4] = { 0, 0, 0, 0 };       // pixels prémultipliés : la moyenne garde des bords propres
+                    for (int k = 0; k < 4; ++k)
+                    {
+                        const auto* p = sd.getPixelPointer (x * 2 + (k & 1), y * 2 + (k >> 1));
+                        for (int c = 0; c < 4; ++c) acc[c] += p[c];
+                    }
+                    auto* q = dd.getPixelPointer (x, y);
+                    for (int c = 0; c < 4; ++c) q[c] = (uint8) ((acc[c] + 2) / 4);
+                }
+            im = half;
+        }
+        return im.getWidth() == w && im.getHeight() == h ? im : im.rescaled (w, h, Graphics::highResamplingQuality);
+    }
+
     String fsLetter (int f) { return String::charToString ((juce_wchar) ('A' + f)); }
 
     // ids des boutons de l'écran
@@ -80,6 +108,7 @@ public:
         bg.src    = loadPng (BinaryData::background_png, BinaryData::background_pngSize);
         fsOff.src = loadPng (BinaryData::fs_off_png, BinaryData::fs_off_pngSize);
         fsOn.src  = loadPng (BinaryData::fs_on_png, BinaryData::fs_on_pngSize);
+        logoSrc   = loadPng (BinaryData::logo_octopus_blanc_png, BinaryData::logo_octopus_blanc_pngSize);
         tfMedium  = Typeface::createSystemTypefaceFor (BinaryData::PoppinsMedium_ttf, BinaryData::PoppinsMedium_ttfSize);
         tfBold    = Typeface::createSystemTypefaceFor (BinaryData::PoppinsBold_ttf, BinaryData::PoppinsBold_ttfSize);
         tfRegular = Typeface::createSystemTypefaceFor (BinaryData::PoppinsRegular_ttf, BinaryData::PoppinsRegular_ttfSize);
@@ -184,10 +213,19 @@ public:
         repaintAskedMs = 0.0;
         g.fillAll (Colours::black);
         g.drawImage (bg.get(), getLocalBounds().toFloat());
+        if (logoImg.isValid())             // logo OCTOPUS à sa taille exacte, calé sur la grille des pixels : net
+        {
+            const auto lr = r (Rectangle<float> (L::logoRight - L::logoW, L::logoCy - L::logoH * 0.5f, L::logoW, L::logoH));
+            g.setOpacity (0.94f);
+            g.drawImage (logoImg, Rectangle<float> ((float) roundToInt (lr.getX()), (float) roundToInt (lr.getY()),
+                                                    (float) logoImg.getWidth() / dispScale, (float) logoImg.getHeight() / dispScale));
+            g.setOpacity (1.0f);
+        }
 
         for (int f = 0; f < 4; ++f)
         {
             const auto fr = r (Rectangle<float> (L::fsSprite, L::fsSprite).withCentre ({ L::fsX[f], L::fsY }));
+            drawRing (g, f, ledLevel[f], ledColour[f]);         // anneau lumineux sous l'écrou (le halo intérieur passe dessous)
             g.drawImage (fsOff.get(), fr);
             if (ledLevel[f] > 0.003f)       // flanc de l'écrou tourné vers la LED
             {
@@ -212,6 +250,7 @@ private:
     OctopusProcessor& proc;
     OctopusEngine& eng;
     ScaledCache bg, fsOff, fsOn;
+    Image logoSrc, logoImg;               // logo OCTOPUS : source pleine résolution, puis image à la taille exacte en pixels
     Image glow[4];
     Colour glowColour[4];
     Typeface::Ptr tfMedium, tfBold, tfRegular;
@@ -350,6 +389,7 @@ private:
         if (getWidth() <= 0) return;
         const float ps = s * dispScale;
         for (auto* c : { &bg, &fsOff, &fsOn }) c->prepare (ps);
+        logoImg = crispRescale (logoSrc, roundToInt (L::logoW * ps), roundToInt (L::logoH * ps));
         layoutEditors();
         askRepaint (getLocalBounds());
     }
@@ -435,6 +475,27 @@ private:
                              col.withMultipliedBrightness (0.95f).withAlpha (k), 0.0f, pb.getBottom(), false);
         g.setGradientFill (body);
         g.fillPath (p);
+    }
+
+    // ------------------------------------------------------------ anneau lumineux autour du footswitch (comme la Phase 90)
+    // Éteint : le diffuseur gris du visuel. Allumé : verre éclairé dans la couleur du footswitch (couleur du preset en
+    // mode PRESET, du bloc en mode STOMP), cœur plus clair, et halo qui déborde sur la façade.
+    void drawRing (Graphics& g, int f, float lvl, Colour col)
+    {
+        if (lvl <= 0.003f) return;
+        const auto c = r (Point<float> (L::fsX[f], L::fsY));
+        const float rm = (L::ringR0 + L::ringR1) * 0.5f * s, wdt = (L::ringR1 - L::ringR0) * s;
+        Path ring;
+        ring.addEllipse (c.x - rm, c.y - rm, rm * 2.0f, rm * 2.0f);
+        for (float hw = 34.0f; hw > 7.0f; hw -= 3.0f)                    // halo : traits de plus en plus larges et transparents
+        {
+            g.setColour (col.withAlpha (0.030f * lvl));
+            g.strokePath (ring, PathStrokeType (hw * s));
+        }
+        g.setColour (col.withAlpha (0.85f * lvl));
+        g.strokePath (ring, PathStrokeType (wdt));
+        g.setColour (col.interpolatedWith (Colours::white, 0.55f).withAlpha (0.9f * lvl));   // cœur du diffuseur
+        g.strokePath (ring, PathStrokeType (wdt * 0.42f));
     }
 
     // (ancienne LED, gardée pour référence : plus dessinée)

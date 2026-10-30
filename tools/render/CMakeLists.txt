@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(${JUCE_DIR} JUCE)
 set(W ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 juce_add_binary_data(OctopusAssets SOURCES
-  ${W}/background.png ${W}/fs_off.png ${W}/fs_on.png
+  ${W}/background.png ${W}/fs_off.png ${W}/fs_on.png ${W}/design/logo_octopus_blanc.png
   ${W}/fonts/Poppins-Regular.ttf ${W}/fonts/Poppins-Medium.ttf ${W}/fonts/Poppins-Bold.ttf ${W}/fonts/IBMPlexMono-SemiBold.ttf)
 juce_add_console_app(OctopusRender PRODUCT_NAME "OctopusRender")
 target_sources(OctopusRender PRIVATE main.cpp ${W}/PluginProcessor.cpp ${W}/PluginEditor.cpp ${W}/OctopusEngine.cpp)
