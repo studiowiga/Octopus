@@ -226,6 +226,20 @@ namespace api
         return f && TrackFX_SetPresetByIndex (t, fx, ((f->presetIdx < 0 ? 0 : f->presetIdx) + move + n) % n);
     }
     void TrackFX_GetUserPresetFilename (void*, int, char* b, int sz) { copyOut (gUserIni.getFullPathName(), b, sz); }
+    // paramètre 1 : 4 positions (0..3 par pas de 1) ; paramètre 2 : interrupteur ; paramètre 0 : continu
+    bool TrackFX_GetParameterStepSizes (void*, int, int p, double* st, double* sm, double* lg, bool* tog)
+    {
+        *st = *sm = *lg = 0.0; *tog = false;
+        if (p == 1) { *st = 1.0; return true; }
+        if (p == 2) { *tog = true; return true; }
+        return false;
+    }
+    double TrackFX_GetParamEx (void* t, int fx, int p, double* mn, double* mx, double* md)
+    {
+        *mn = 0.0; *mx = p == 1 ? 3.0 : 1.0; *md = *mx * 0.5;
+        auto* f = fxAt (t, fx);
+        return f && p < (int) f->params.size() ? f->params[(size_t) p] : 0.0;
+    }
     // état exact d'un plugin (vst_chunk) : réglages + preset affiché
     String chunkOf (const FakeFx& f) { String p; for (auto v : f.params) p << String (v, 9) << ","; return juce::Base64::toBase64 (f.state + "|" + p + "|" + String (f.presetIdx)); }
 }
@@ -263,7 +277,7 @@ public:
         static std::map<std::string, void*> m {
             #define F(x) { #x, (void*) &api::x }
             { "TrackFX_GetNamedConfigParm", (void*) &api::TrackFX_GetNamedConfigParm2 }, { "TrackFX_SetNamedConfigParm", (void*) &api::TrackFX_SetNamedConfigParm2 },
-            F(TrackFX_GetPresetIndex), F(TrackFX_SetPresetByIndex), F(TrackFX_GetPreset), F(TrackFX_SetPreset), F(TrackFX_NavigatePresets), F(TrackFX_GetUserPresetFilename),
+            F(TrackFX_GetParameterStepSizes), F(TrackFX_GetParamEx), F(TrackFX_GetPresetIndex), F(TrackFX_SetPresetByIndex), F(TrackFX_GetPreset), F(TrackFX_SetPreset), F(TrackFX_NavigatePresets), F(TrackFX_GetUserPresetFilename),
             F(TrackFX_GetCount), F(TrackFX_GetRecCount), F(TrackFX_GetFXName),
             F(TrackFX_GetEnabled), F(TrackFX_SetEnabled), F(TrackFX_GetOffline), F(TrackFX_SetOffline), F(TrackFX_GetOpen), F(TrackFX_GetFXGUID),
             F(guidToString), F(TrackFX_GetNumParams), F(TrackFX_GetParamName), F(TrackFX_GetFormattedParamValue), F(TrackFX_GetParamNormalized),
@@ -448,6 +462,9 @@ int main()
         bridge.stepPreset (eng.blocks()[0], 1);
         check (bridge.presetName (eng.blocks()[0]) == "My lead", "preset suivant : My lead");
         gUserIni.deleteFile();
+        const int hb = eng.blocks()[0];
+        check (bridge.paramSteps (hb, 0) == 0 && bridge.paramSteps (hb, 1) == 4 && bridge.paramSteps (hb, 2) == 2,
+               "paramètres à crans : continu / 4 positions / interrupteur");
     }
 
     // la piste disparaît (supprimée) : plus prêt, pas de plantage

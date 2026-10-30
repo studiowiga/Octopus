@@ -50,7 +50,7 @@ namespace
     {
         bNone = 0, bBankPrev, bBankNext, bModePreset, bModeStomp, bSave, bBanks, bClose,
         bParamOnOff, bParamWindow, bPagePrev, bPageNext, bExport, bImport, bPc, bReload,
-        bAddPicked, bClearPicked, bPresets, bPresetRescan, bTunerMute, bTunerMode, bTunerExit,
+        bAddPicked, bClearPicked, bParamMidi, bPresets, bPresetRescan, bTunerMute, bTunerMode, bTunerExit,
         bChip = 100,                     // + catégorie du navigateur
         bBank = 200,                     // + numéro de bank
         bCard = 300                      // + slot * 10 + action
@@ -125,6 +125,8 @@ public:
         paramGuid = eng.chain().getReference (chainIndex).guid;
         paramPage = 0;
         presetMode = false;
+        midiView = false;
+        paramListKey = {};
         hideEditors();
         pollParams (true);
         askRepaint (screenPx());
@@ -232,7 +234,16 @@ private:
     // paramètres
     String paramGuid;
     int paramPage = 0, paramDrag = -1;
-    struct ParamView { int index; String name, text; double value; };
+    struct ParamView { int index; String name, text; double value; int steps; };
+    // paramètres affichés : ceux du plugin sans le MIDI, ou seulement le MIDI (bouton MIDI) ; liste faite une fois par effet
+    bool midiView = false;
+    Array<int> paramList;
+    String paramListKey;
+    // double-clic sur un bloc : détecté par Octopus lui-même (même bloc, moins de 650 ms entre les deux appuis),
+    // et la bascule ON / OFF d'un clic simple est annulée si le double-clic arrive après elle
+    String lastClickGuid, toggledGuid;
+    double lastClickMs = 0.0, toggledAtMs = 0.0;
+    Point<float> lastClickPos;
     Array<ParamView> params;
     int paramCount = 0, pollTick = 0;
     String drawnParamSig;
@@ -693,21 +704,23 @@ private:
             const auto* f = paramFx();
             const bool on = f != nullptr && f->enabled;
             const int pages = jmax (1, (paramCount + 7) / 8);
-            v.push_back ({ { 520.0f, 84.0f, 112.0f, 36.0f }, bPresets, "PRESETS", presetMode });
-            v.push_back ({ { 640.0f, 84.0f, 72.0f, 36.0f }, bParamOnOff, on ? "ON" : "OFF", on });
-            v.push_back ({ { 720.0f, 84.0f, 108.0f, 36.0f }, bParamWindow, "WINDOW", f != nullptr && f->open });
+            v.push_back ({ { 400.0f, 84.0f, 110.0f, 36.0f }, bPresets, "PRESETS", presetMode });
+            v.push_back ({ { 516.0f, 84.0f, 104.0f, 36.0f }, bParamWindow, "WINDOW", f != nullptr && f->open });
+            v.push_back ({ { 626.0f, 84.0f, 76.0f, 36.0f }, bParamMidi, "MIDI", midiView && ! presetMode });
             if (presetMode)
             {
                 // flèches : preset précédent / suivant (comme les flèches du menu de presets de REAPER)
-                v.push_back ({ { 838.0f, 84.0f, 34.0f, 36.0f }, bPagePrev, CharPointer_UTF8 ("\xe2\x97\x80"), false, plist.count > 1 });
-                v.push_back ({ { 964.0f, 84.0f, 34.0f, 36.0f }, bPageNext, CharPointer_UTF8 ("\xe2\x96\xb6"), false, plist.count > 1 });
+                v.push_back ({ { 760.0f, 84.0f, 34.0f, 36.0f }, bPagePrev, CharPointer_UTF8 ("\xe2\x97\x80"), false, plist.count > 1 });
+                v.push_back ({ { 872.0f, 84.0f, 34.0f, 36.0f }, bPageNext, CharPointer_UTF8 ("\xe2\x96\xb6"), false, plist.count > 1 });
                 v.push_back ({ { 910.0f, 132.0f, 138.0f, 36.0f }, bPresetRescan, "RELOAD LIST" });
             }
             else
             {
-                v.push_back ({ { 838.0f, 84.0f, 34.0f, 36.0f }, bPagePrev, CharPointer_UTF8 ("\xe2\x97\x80"), false, paramPage > 0 });
-                v.push_back ({ { 964.0f, 84.0f, 34.0f, 36.0f }, bPageNext, CharPointer_UTF8 ("\xe2\x96\xb6"), false, paramPage < pages - 1 });
+                v.push_back ({ { 760.0f, 84.0f, 34.0f, 36.0f }, bPagePrev, CharPointer_UTF8 ("\xe2\x97\x80"), false, paramPage > 0 });
+                v.push_back ({ { 872.0f, 84.0f, 34.0f, 36.0f }, bPageNext, CharPointer_UTF8 ("\xe2\x96\xb6"), false, paramPage < pages - 1 });
             }
+            // BYPASS à côté de la croix : allumé quand l'effet est contourné
+            v.push_back ({ { 914.0f, 84.0f, 88.0f, 36.0f }, bParamOnOff, "BYPASS", ! on });
         }
         else if (overlay == Overlay::banks)
         {
@@ -864,14 +877,14 @@ private:
     {
         g.setColour (kFaint.withAlpha (0.45f));
         g.fillRect (S (Rectangle<float> (0.0f, kFooterY - 6.0f, kSW, 1.0f)));
-        const bool presetMode = eng.mode() == OctopusEngine::presetMode;
+        const bool inPresetMode = eng.mode() == OctopusEngine::presetMode;
         for (int f = 0; f < 4; ++f)
         {
             const auto cell = footerCell (f);
             const auto c = S (cell);
             const bool lit = eng.fsLit (f);
             const int kind = eng.fsKind (f);
-            const auto col = presetMode ? kPresetLed : (kind >= 0 ? FxCat::colour (kind) : kDim);
+            const auto col = inPresetMode ? kPresetLed : (kind >= 0 ? FxCat::colour (kind) : kDim);
             const bool hov = hoverFooter == f;
             g.setColour (lit ? col.withAlpha (0.16f) : (hov ? kScrPanel2.brighter (0.1f) : kScrPanel));
             g.fillRoundedRectangle (c, S (9.0f));
@@ -1054,7 +1067,7 @@ private:
         return -1;
     }
     Rectangle<float> paramCell (int k) const { return { 16.0f + 520.0f * (float) (k % 2), 134.0f + 112.0f * (float) (k / 2), 512.0f, 100.0f }; }
-    Rectangle<float> paramBar (int k) const { auto c = paramCell (k); return { c.getX() + 14.0f, c.getY() + 60.0f, c.getWidth() - 28.0f, 18.0f }; }
+    Rectangle<float> paramBar (int k) const { auto c = paramCell (k); return { c.getX() + 14.0f, c.getY() + 62.0f, c.getWidth() - 28.0f, 22.0f }; }
 
     // lit les paramètres affichés (au plus 8) ; renvoie true si quelque chose a changé
     bool pollParams (bool force)
@@ -1062,16 +1075,27 @@ private:
         const int i = paramFxIndex();
         auto& h = eng.chainHost();
         if (i < 0) { if (overlay == Overlay::params) closeOverlay(); return false; }
-        paramCount = h.numParams (i);
+        const auto key = paramGuid + (midiView ? "/midi" : "/main") + "/" + String (h.numParams (i));
+        if (key != paramListKey)
+        {
+            // tout ce qui concerne le MIDI (canal, learn, CC émulés...) est rangé derrière le bouton MIDI
+            paramList.clearQuick();
+            const int n = h.numParams (i);
+            for (int p = 0; p < n; ++p)
+                if (h.paramName (i, p).containsIgnoreCase ("MIDI") == midiView) paramList.add (p);
+            paramListKey = key;
+        }
+        paramCount = paramList.size();
         const int pages = jmax (1, (paramCount + 7) / 8);
         paramPage = jlimit (0, pages - 1, paramPage);
         params.clearQuick();
         String sig;
         for (int k = 0; k < 8; ++k)
         {
-            const int p = paramPage * 8 + k;
-            if (p >= paramCount) break;
-            ParamView pv { p, h.paramName (i, p), h.paramText (i, p), h.getParam (i, p) };
+            const int idx = paramPage * 8 + k;
+            if (idx >= paramCount) break;
+            const int p = paramList[idx];
+            ParamView pv { p, h.paramName (i, p), h.paramText (i, p), h.getParam (i, p), h.paramSteps (i, p) };
             sig << pv.name << pv.text << String (pv.value, 4) << "|";
             params.add (pv);
         }
@@ -1089,16 +1113,16 @@ private:
         FxCat::drawIcon (g, kind, S (Rectangle<float> (16.0f, 86.0f, 32.0f, 32.0f)), FxCat::colour (kind).brighter (0.3f), S (2.0f));
         g.setFont (font (tfBold, 21.0f));
         g.setColour (kText);
-        g.drawText (FxCat::shortName (f->name), S (Rectangle<float> (58.0f, 84.0f, 450.0f, 36.0f)), Justification::centredLeft, true);
+        g.drawText (FxCat::shortName (f->name), S (Rectangle<float> (58.0f, 84.0f, 336.0f, 36.0f)), Justification::centredLeft, true);
         if (presetMode) { drawPresets (g, kind); return; }
         const int pages = jmax (1, (paramCount + 7) / 8);
         g.setFont (font (tfBold, 15.0f));
         g.setColour (kDim);
-        g.drawText (String (paramPage + 1) + " / " + String (pages), S (Rectangle<float> (872.0f, 84.0f, 92.0f, 36.0f)), Justification::centred);
+        g.drawText (String (paramPage + 1) + " / " + String (pages), S (Rectangle<float> (796.0f, 84.0f, 74.0f, 36.0f)), Justification::centred);
         if (params.isEmpty())
         {
             g.setFont (font (tfMedium, 18.0f));
-            g.drawText ("This plug-in has no parameter", S (Rectangle<float> (16.0f, 230.0f, 1032.0f, 40.0f)), Justification::centred);
+            g.drawText (midiView ? "No MIDI parameter" : "This plug-in has no parameter", S (Rectangle<float> (16.0f, 230.0f, 1032.0f, 40.0f)), Justification::centred);
             return;
         }
         const auto col = FxCat::colour (kind);
@@ -1108,17 +1132,36 @@ private:
             const auto cell = S (paramCell (k));
             g.setColour (hoverParam == k || paramDrag == k ? kScrPanel2.brighter (0.08f) : kScrPanel);
             g.fillRoundedRectangle (cell, S (8.0f));
-            g.setFont (font (tfMedium, 17.0f));
+            // nom du paramètre : grand et lisible ; valeur telle que le plugin l'affiche
+            g.setFont (font (tfMedium, 23.0f));
             g.setColour (kText);
-            g.drawText (pv.name, cell.reduced (S (12.0f), 0.0f).withY (cell.getY() + S (8.0f)).withHeight (S (30.0f)).withTrimmedRight (S (150.0f)), Justification::centredLeft, true);
-            g.setFont (font (tfBold, 17.0f));
+            g.drawText (pv.name, cell.reduced (S (14.0f), 0.0f).withY (cell.getY() + S (8.0f)).withHeight (S (38.0f)).withTrimmedRight (S (170.0f)), Justification::centredLeft, true);
+            g.setFont (font (tfBold, 21.0f));
             g.setColour (col.brighter (0.4f));
-            g.drawText (pv.text, cell.reduced (S (12.0f), 0.0f).withY (cell.getY() + S (8.0f)).withHeight (S (30.0f)).removeFromRight (S (180.0f)), Justification::centredRight, true);
+            g.drawText (pv.text, cell.reduced (S (14.0f), 0.0f).withY (cell.getY() + S (8.0f)).withHeight (S (38.0f)).removeFromRight (S (200.0f)), Justification::centredRight, true);
             const auto bar = S (paramBar (k));
+            const float v = (float) jlimit (0.0, 1.0, pv.value);
             g.setColour (kScrBg);
             g.fillRoundedRectangle (bar, bar.getHeight() * 0.5f);
-            g.setColour (col.withAlpha (0.85f));
-            g.fillRoundedRectangle (bar.withWidth (jmax (bar.getHeight(), bar.getWidth() * (float) jlimit (0.0, 1.0, pv.value))), bar.getHeight() * 0.5f);
+            if (pv.steps >= 2)
+            {
+                // paramètre à crans (modes, interrupteurs) : une case par position, la position choisie allumée
+                const int n = pv.steps;
+                const int cur = roundToInt (v * (float) (n - 1));
+                const float gap = n <= 24 ? S (4.0f) : 0.0f;
+                const float w = (bar.getWidth() - gap * (float) (n - 1)) / (float) n;
+                for (int st = 0; st < n; ++st)
+                {
+                    const auto seg = Rectangle<float> (bar.getX() + (w + gap) * (float) st, bar.getY(), w, bar.getHeight());
+                    g.setColour (st == cur ? col : (st < cur && n > 4 ? col.withAlpha (0.35f) : kScrPanel2.brighter (0.15f)));
+                    g.fillRoundedRectangle (seg, jmin (seg.getHeight(), seg.getWidth()) * 0.35f);
+                }
+            }
+            else
+            {
+                g.setColour (col.withAlpha (0.85f));
+                g.fillRoundedRectangle (bar.withWidth (jmax (bar.getHeight(), bar.getWidth() * v)), bar.getHeight() * 0.5f);
+            }
         }
     }
 
@@ -1175,7 +1218,7 @@ private:
         g.setFont (font (tfBold, 15.0f));
         g.setColour (kDim);
         g.drawText (plist.count > 0 ? String (plist.current >= 0 ? plist.current + 1 : 0) + " / " + String (plist.count) : String ("-"),
-                    S (Rectangle<float> (872.0f, 84.0f, 92.0f, 36.0f)), Justification::centred);
+                    S (Rectangle<float> (796.0f, 84.0f, 74.0f, 36.0f)), Justification::centred);
         // preset actif
         g.setFont (font (tfRegular, 15.0f));
         g.setColour (kDim);
@@ -1224,10 +1267,18 @@ private:
     {
         if (! isPositiveAndBelow (k, params.size())) return;
         const auto bar = paramBar (k);
-        const double v = jlimit (0.0, 1.0, (double) ((x - bar.getX()) / bar.getWidth()));
+        double v = jlimit (0.0, 1.0, (double) ((x - bar.getX()) / bar.getWidth()));
         const int i = paramFxIndex();
         if (i < 0) return;
-        eng.chainHost().setParam (i, params.getReference (k).index, v);
+        const auto& pv = params.getReference (k);
+        if (pv.steps >= 2)
+        {
+            // à crans : la case sous la souris, jamais une valeur intermédiaire
+            const int n = pv.steps;
+            v = (double) jlimit (0, n - 1, (int) std::floor (v * n)) / (double) (n - 1);
+            if (std::abs (v - pv.value) < 1.0e-6) return;
+        }
+        eng.chainHost().setParam (i, pv.index, v);
         if (pollParams (false)) askRepaint (screenPx());
     }
 
@@ -1694,9 +1745,9 @@ private:
                     const auto items = filtered();
                     const int i = listScroll * kListRows + v;
                     if (i >= items.size()) return;
-                    const auto& f = items.getReference (i);
-                    if (e.getNumberOfClicks() >= 2) { if (pickedIndex (f) < 0) picked.add (f); addPicked(); }
-                    else togglePick (f);
+                    const auto& fx = items.getReference (i);
+                    if (e.getNumberOfClicks() >= 2) { if (pickedIndex (fx) < 0) picked.add (fx); addPicked(); }
+                    else togglePick (fx);
                     return;
                 }
             return;
@@ -1738,18 +1789,68 @@ private:
             return;
         }
         if (slot == n) { openBrowser (n); return; }
-        if (slot >= 0 && slot < n)
+        if (slot >= 0 && slot < n) blockDown (slot, p, Time::getMillisecondCounterHiRes());
+    }
+
+public:
+    // ---- clic / double-clic sur un bloc (fonctions séparées des événements souris pour être testées avec des temps donnés)
+    void blockDown (int slot, Point<float> p, double now)
+    {
+        if (! isPositiveAndBelow (slot, eng.blocks().size())) return;
         {
+            const auto guid = eng.chain().getReference (eng.blocks()[slot]).guid;
+            // double-clic détecté par Octopus (pas par le système) : même bloc, moins de 650 ms, souris presque immobile
+            if (guid == lastClickGuid && now - lastClickMs < 650.0 && p.getDistanceFrom (lastClickPos) < 16.0f)
+            {
+                pendingToggle = -1;                         // double-clic : paramètres, jamais de bascule
+                if (toggledGuid == guid && now - toggledAtMs < 900.0)
+                {
+                    // double-clic lent : la bascule du premier clic est déjà passée -> on la défait
+                    const int b = eng.blockOf (guid);
+                    if (b >= 0) eng.toggle (eng.blocks()[b]);
+                }
+                toggledGuid = {}; lastClickGuid = {};
+                downSlot = -1;
+                const int b = eng.blockOf (guid);
+                if (b >= 0) openParams (eng.blocks()[b]);
+                return;
+            }
+            lastClickGuid = guid; lastClickMs = now; lastClickPos = p;
             downSlot = slot;
             downPos = p;
-            if (e.getNumberOfClicks() >= 2)
+        }
+    }
+
+    void blockUp (int slot, double now)
+    {
+        if (isPositiveAndBelow (slot, eng.blocks().size()) && eng.chain().getReference (eng.blocks()[slot]).guid == lastClickGuid)
+        {
+            // clic simple : ON / OFF, appliqué 400 ms après le relâchement si aucun second clic n'est venu
+            pendingToggle = eng.blocks()[slot];
+            pendingToggleAt = now + 400.0;
+        }
+    }
+
+    void runPendingToggle (double now)
+    {
+        if (pendingToggle >= 0 && now >= pendingToggleAt)
+        {
+            const int i = pendingToggle;
+            pendingToggle = -1;
+            if (isPositiveAndBelow (i, eng.chain().size()))
             {
-                pendingToggle = -1;                         // double-clic : paramètres, pas de bascule
-                openParams (eng.blocks()[slot]);
-                downSlot = -1;
+                toggledGuid = eng.chain().getReference (i).guid;
+                toggledAtMs = now;
+                eng.toggle (i);
             }
         }
     }
+    bool paramsOpen() const { return overlay == Overlay::params; }
+    void toggleMidiView() { clickButton (bParamMidi); }
+    void closeAll() { closeOverlay(); }
+    Point<float> blockCentre (int slot) const { return slotCentre (slot); }
+
+private:
 
     void mouseDrag (const MouseEvent& e) override
     {
@@ -1768,7 +1869,7 @@ private:
         }
     }
 
-    void mouseUp (const MouseEvent& e) override
+    void mouseUp (const MouseEvent&) override
     {
         if (pressedFs >= 0)
         {
@@ -1791,12 +1892,7 @@ private:
                 askRepaint (screenPx());
                 return;
             }
-            if (e.getNumberOfClicks() < 2 && isPositiveAndBelow (slot, eng.blocks().size()))
-            {
-                // clic simple : ON / OFF, appliqué après le délai du double-clic (un double-clic ouvre les paramètres)
-                pendingToggle = eng.blocks()[slot];
-                pendingToggleAt = Time::getMillisecondCounterHiRes() + (double) MouseEvent::getDoubleClickTimeout() + 10.0;
-            }
+            blockUp (slot, Time::getMillisecondCounterHiRes());
         }
     }
 
@@ -1855,6 +1951,7 @@ private:
             case bPagePrev:   if (presetMode) stepPluginPreset (-1); else { paramPage = jmax (0, paramPage - 1); pollParams (true); } break;
             case bPageNext:   if (presetMode) stepPluginPreset (1); else { ++paramPage; pollParams (true); } break;
             case bPresets:    if (presetMode) presetMode = false; else openPresets (false); break;
+            case bParamMidi:  presetMode = false; midiView = ! midiView; paramPage = 0; pollParams (true); break;
             case bPresetRescan: openPresets (true); break;
             case bAddPicked:  addPicked(); break;
             case bClearPicked: picked.clear(); break;
@@ -2119,12 +2216,7 @@ private:
         }
 
         // clic simple sur un bloc : bascule ON / OFF une fois le délai du double-clic passé
-        if (pendingToggle >= 0 && now >= pendingToggleAt)
-        {
-            const int i = pendingToggle;
-            pendingToggle = -1;
-            eng.toggle (i);
-        }
+        runPendingToggle (now);
 
         // accordeur : l'écran de CHROMA s'anime en continu tant que le bloc CHROMA est allumé
         if (tunerShown())
@@ -2265,4 +2357,24 @@ void OctopusEditor::showScreen (int which, int arg)
 
 void OctopusEditor::screenSearch (const String& t, int chip) { view->setChip (chip); view->setSearch (t); }
 void OctopusEditor::screenPick (int visibleIndex) { view->pickVisible (visibleIndex); }
+
+void OctopusEditor::screenParamsMidi() { view->toggleMidiView(); }
+
+// test du clic / double-clic : temps en ms (appui, relâchement) pour chaque clic, puis attente ; renvoie true si les paramètres sont ouverts
+bool OctopusEditor::testBlockClicks (int slot, const Array<double>& downUp, double waitMs)
+{
+    view->closeAll();
+    const auto c = view->blockCentre (slot);
+    static double t0 = 1.0e9;
+    t0 += 1.0e5;                       // chaque série de clics bien après la précédente
+    for (int k = 0; k + 1 < downUp.size(); k += 2)
+    {
+        view->runPendingToggle (t0 + downUp[k]);
+        view->blockDown (slot, c, t0 + downUp[k]);
+        if (view->paramsOpen()) break;
+        view->blockUp (slot, t0 + downUp[k + 1]);
+    }
+    view->runPendingToggle (t0 + downUp.getLast() + waitMs);
+    return view->paramsOpen();
+}
 void OctopusEditor::screenHover (Point<float> unitPos) { view->simulateHover (unitPos); }

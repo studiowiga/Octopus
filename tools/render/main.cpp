@@ -121,8 +121,29 @@ int main (int argc, char** argv)
     ed->screenSearch ("rea", 0);
     shot ("octopus_add_search");
 
+    // clic / double-clic sur un bloc (temps simulés, en ms : appui, relâchement, ...)
+    {
+        const int slot = 1;
+        auto on = [&] { return e.chain().getReference (e.blocks()[slot]).enabled; };
+        bool before = on();
+        bool opened = ed->testBlockClicks (slot, { 0.0, 80.0, 250.0, 320.0 }, 800);
+        check (opened && on() == before, "double-clic rapide : paramètres ouverts, effet inchangé");
+        before = on();
+        opened = ed->testBlockClicks (slot, { 0.0, 120.0, 560.0, 640.0 }, 800);
+        check (opened && on() == before, "double-clic lent (après la bascule du 1er clic) : paramètres ouverts, effet rétabli");
+        before = on();
+        opened = ed->testBlockClicks (slot, { 0.0, 100.0 }, 600);
+        check (! opened && on() != before, "clic simple : ON / OFF, pas de paramètres");
+        before = on();
+        opened = ed->testBlockClicks (slot, { 0.0, 100.0, 1000.0, 1100.0 }, 600);
+        check (! opened && on() == before, "deux clics espacés d'une seconde : deux bascules");
+        ed->showScreen (0);
+    }
+
     ed->showScreen (2, e.blocks()[6]);
     shot ("octopus_params");
+    ed->screenParamsMidi();
+    shot ("octopus_params_midi");
     ed->showScreen (4, e.blocks()[6]);
     shot ("octopus_presets");
     ed->showScreen (3);

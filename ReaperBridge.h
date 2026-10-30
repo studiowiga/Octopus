@@ -41,6 +41,7 @@ public:
     juce::String paramText (int index, int p) override;
     double getParam (int index, int p) override;
     void setParam (int index, int p, double v) override;
+    int paramSteps (int index, int p) override;
     bool capture (juce::StringArray& entries, int& selfPos, juce::String& error) override;
     bool insertEntries (const juce::Array<EntryInsert>& items, juce::String& error) override;
     PluginPresets presets (int index, bool probe) override;

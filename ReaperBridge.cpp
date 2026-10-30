@@ -78,6 +78,8 @@ struct ReaperBridge::Api
     void  (*DeleteTrack) (void* track) = nullptr;
     void* (*GetTrack) (void* proj, int idx) = nullptr;
     int   (*CountTracks) (void* proj) = nullptr;
+    bool  (*TrackFX_GetParameterStepSizes) (void* track, int fx, int param, double* step, double* small, double* large, bool* isToggle) = nullptr;
+    double (*TrackFX_GetParamEx) (void* track, int fx, int param, double* minv, double* maxv, double* midv) = nullptr;
     int   (*TrackFX_GetPresetIndex) (void* track, int fx, int* numberOfPresetsOut) = nullptr;
     bool  (*TrackFX_GetPreset) (void* track, int fx, char* buf, int sz) = nullptr;
     bool  (*TrackFX_SetPresetByIndex) (void* track, int fx, int idx) = nullptr;
@@ -163,6 +165,8 @@ void ReaperBridge::resolve()
     getApi (reaper, a.DeleteTrack, "DeleteTrack");
     getApi (reaper, a.GetTrack, "GetTrack");
     getApi (reaper, a.CountTracks, "CountTracks");
+    getApi (reaper, a.TrackFX_GetParameterStepSizes, "TrackFX_GetParameterStepSizes");
+    getApi (reaper, a.TrackFX_GetParamEx, "TrackFX_GetParamEx");
     getApi (reaper, a.TrackFX_GetPresetIndex, "TrackFX_GetPresetIndex");
     getApi (reaper, a.TrackFX_GetPreset, "TrackFX_GetPreset");
     getApi (reaper, a.TrackFX_SetPresetByIndex, "TrackFX_SetPresetByIndex");
@@ -400,6 +404,22 @@ void ReaperBridge::setParam (int i, int p, double v)
 {
     if (validIndex (i) && i != selfRaw && api->TrackFX_SetParamNormalized != nullptr)
         api->TrackFX_SetParamNormalized (track, i | chainFlag, p, juce::jlimit (0.0, 1.0, v));
+}
+
+// paramètre à crans (modes, interrupteurs...) : nombre de positions d'après les pas annoncés par le plugin
+int ReaperBridge::paramSteps (int i, int p)
+{
+    if (! validIndex (i) || api->TrackFX_GetParameterStepSizes == nullptr) return 0;
+    double step = 0, small = 0, large = 0;
+    bool toggle = false;
+    if (! api->TrackFX_GetParameterStepSizes (track, i | chainFlag, p, &step, &small, &large, &toggle)) return 0;
+    if (toggle) return 2;
+    if (step <= 0.0) return 0;
+    double mn = 0.0, mx = 1.0, md = 0.0;
+    if (api->TrackFX_GetParamEx != nullptr) api->TrackFX_GetParamEx (track, i | chainFlag, p, &mn, &mx, &md);
+    const double n = (mx - mn) / step;
+    if (! (n >= 1.0) || n > 64.0) return 0;                  // trop de crans : traité comme continu
+    return (int) std::lround (n) + 1;
 }
 
 // ------------------------------------------------------------------ presets (état complet de la chaîne)

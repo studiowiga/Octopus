@@ -78,6 +78,7 @@ public:
     virtual juce::String paramText (int index, int p) = 0;
     virtual double getParam (int index, int p) = 0;
     virtual void setParam (int index, int p, double v) = 0;
+    virtual int paramSteps (int index, int p) = 0;      // 0 = continu, 2 = interrupteur, n = n positions (modes...)
 
     // presets : état complet de la chaîne au format texte de REAPER (sans Octopus)
     //   capture : effets dans l'ordre, et position d'Octopus parmi eux (0 = Octopus en premier)
@@ -150,18 +151,40 @@ public:
     void endUndo (const juce::String&) override {}
 
     bool isChroma (int i) const { return ok (i) && chain[i].original.containsIgnoreCase ("CHROMA"); }
-    int numParams (int i) override { return ok (i) ? (isChroma (i) ? 3 : 11) : 0; }
+    static constexpr int kDemoParams = 16;
+    int numParams (int i) override { return ok (i) ? (isChroma (i) ? 3 : kDemoParams) : 0; }
     juce::String paramName (int i, int p) override
     {
         if (isChroma (i)) { static const char* c[] = { "Mute", "Mode", "Reference A4" }; return c[juce::jlimit (0, 2, p)]; }
-        static const char* n[] = { "Level", "Tone", "Gain", "Mix", "Time", "Feedback", "Rate", "Depth", "Bypass", "Wet", "Delta" };
-        return n[juce::jlimit (0, 10, p)];
+        static const char* n[kDemoParams] = { "Level", "Tone", "Gain", "Mix", "Time", "Feedback", "Mode", "Tempo Sync", "Rate", "Depth",
+                                              "MIDI Channel", "MIDI Pedal Invert", "MIDI CC 0|0", "Bypass", "Wet", "Delta" };
+        return n[juce::jlimit (0, kDemoParams - 1, p)];
     }
-    juce::String paramText (int i, int p) override { return juce::String (juce::roundToInt (getParam (i, p) * 100.0)) + " %"; }
+    int paramSteps (int i, int p) override
+    {
+        if (isChroma (i)) return p == 0 ? 2 : (p == 1 ? 3 : 21);
+        return p == 6 ? 4 : (p == 7 || p == 11 || p == 13 ? 2 : (p == 10 ? 17 : 0));
+    }
+    juce::String paramText (int i, int p) override
+    {
+        const double v = getParam (i, p);
+        const int st = paramSteps (i, p);
+        if (st >= 2)
+        {
+            const int k = juce::roundToInt (v * (st - 1));
+            if (! isChroma (i) && p == 6) { static const char* m[4] = { "Digital", "Analog", "Tape", "Reverse" }; return m[k]; }
+            if (st == 2) return k ? "On" : "Off";
+            return p == 10 ? (k == 0 ? juce::String ("Omni") : juce::String (k)) : juce::String (k + 1);
+        }
+        return juce::String (juce::roundToInt (v * 100.0)) + " %";
+    }
     double getParam (int i, int p) override
     {
         auto k = chain[i].guid + "/" + juce::String (p);
-        return values.contains (k) ? (double) values[k] : 0.25 + 0.06 * (double) ((p * 7 + i * 3) % 10);
+        double v = values.contains (k) ? (double) values[k] : 0.25 + 0.06 * (double) ((p * 7 + i * 3) % 10);
+        const int st = paramSteps (i, p);
+        if (st >= 2) v = std::round (v * (st - 1)) / (st - 1);
+        return v;
     }
     void setParam (int i, int p, double v) override { values.set (chain[i].guid + "/" + juce::String (p), v); }
 
@@ -215,7 +238,7 @@ public:
     {
         if (! ok (i)) return false;
         presetIdx.set (chain[i].guid, idx);
-        for (int k = 0; k < 11; ++k) values.set (chain[i].guid + "/" + juce::String (k), std::fmod (0.17 * (idx + 1) + 0.09 * k, 1.0));
+        for (int k = 0; k < 6; ++k) values.set (chain[i].guid + "/" + juce::String (k), std::fmod (0.17 * (idx + 1) + 0.09 * k, 1.0));
         return true;
     }
     bool stepPreset (int i, int dir) override
@@ -258,7 +281,7 @@ private:
     juce::String settingsOf (const juce::String& guid)
     {
         juce::String s;
-        for (int p = 0; p < 11; ++p) { auto k = guid + "/" + juce::String (p); if (values.contains (k)) s << p << "=" << values[k].toString() << ";"; }
+        for (int p = 0; p < kDemoParams; ++p) { auto k = guid + "/" + juce::String (p); if (values.contains (k)) s << p << "=" << values[k].toString() << ";"; }
         return s;
     }
 
