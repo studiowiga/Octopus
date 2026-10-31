@@ -30,7 +30,7 @@ namespace OctoLayout
     constexpr float fsSprite = 150.0f;                          // côté du sprite footswitch (ombre comprise)
     constexpr float fsRadius = 40.0f;                           // zone cliquable (cercle)
     // lettres A-D (à la place de celles gravées sur la photo) : centre et hauteur de police
-    const float ledXs[4] = { 208.5f, 488.0f, 771.5f, 1053.0f };
+    const float ledXs[4] = { 204.5f, 485.5f, 770.5f, 1052.5f };   // = fsX : lettre centrée sur son footswitch
     constexpr float ledY = 800.5f, ledDx = 0.0f, letterFont = 29.0f;
     constexpr float ledR = 9.0f;
     // logo OCTOPUS (dessiné par le plugin, net à toutes les tailles) : à la place de celui de la photo, bord droit à 1200
