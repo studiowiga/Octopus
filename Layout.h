@@ -31,7 +31,7 @@ namespace OctoLayout
     constexpr float fsRadius = 40.0f;                           // zone cliquable (cercle)
     // lettres A-D (à la place de celles gravées sur la photo) : centre et hauteur de police
     const float ledXs[4] = { 208.5f, 488.0f, 771.5f, 1053.0f };
-    constexpr float ledY = 797.0f, ledDx = 0.0f, letterFont = 29.0f;
+    constexpr float ledY = 800.5f, ledDx = 0.0f, letterFont = 29.0f;
     constexpr float ledR = 9.0f;
     // logo OCTOPUS (dessiné par le plugin, net à toutes les tailles) : à la place de celui de la photo, bord droit à 1200
     // (comme sur le visuel), 62 de haut, centré à 53 ; dessin 1704 x 446 dans une image 1768 x 510

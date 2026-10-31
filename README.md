@@ -110,3 +110,4 @@ v1.3.4 : retour aux footswitchs inox des versions précédentes (vus de dessus, 
 v1.3.5 : aluminium brossé du boîtier assombri (x 0,78).
 v1.3.6 : façade en aluminium brossé entièrement générée (tools/brushed_alu.py : stries de longueurs variées en fondu, rayures fines, grain, reflets anisotropes) : plus aucune tache de retouche ; arête du boîtier usinée avec reflet en haut à gauche ; lunette de l'écran de la photo.
 v1.3.7 : bas de la pédale raccourci (repère 1267 x 944, fenêtre 60 % = 993 x 740) ; lettres et footswitchs remontés.
+v1.3.8 : lettres A-D centrées entre l'écran et les footswitchs.
