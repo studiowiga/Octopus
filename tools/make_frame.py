@@ -79,6 +79,10 @@ img = erase_discs(img, [(227.0, 884.0), (545.0, 884.0), (868.0, 883.0), (1187.0,
 for cx in (226.5, 543.0, 864.5, 1183.0):                      # lettres A-D gravées (le plugin les dessine, allumées ou non)
     patch_rows(img, int(cx - 15), 792, int(cx + 15), 822, 70)
 
+# aluminium brossé assombri (demande du 31/10) : la façade garde son brossage et ses reflets, en plus sombre
+DARKEN = 0.78
+img = img * DARKEN
+
 # vitre : vidée (presque noire), coins arrondis comme l'ouverture de la photo
 GX0, GY0, GX1, GY1, GR = 71.0, 108.0, 1345.0, 769.0, 14.0
 yy, xx = np.mgrid[0:H, 0:W].astype(np.float64) + 0.5
