@@ -104,17 +104,20 @@ removed = sum(b - a for a, b in CUTS)
 W2 = W - removed
 assert img.shape[1] == W2, img.shape
 
-# 2x, détourage du boîtier (photo redressée : boîtier x 12..1403, y 3..968, coins de rayon 42)
+# bas de la pédale raccourci (demande du 31/10) : boîtier jusqu'à y 931 au lieu de 968 (façade générée sous l'écran)
+BOX_BOTTOM, H = 931.0, 944
+img = img[:H]
+# 2x, détourage du boîtier (photo redressée : boîtier x 12..1403, y 3..BOX_BOTTOM, coins de rayon 42)
 big = cv2.resize(img, (W2 * AS, H * AS), interpolation=cv2.INTER_LANCZOS4)
 yy, xx = (np.mgrid[0:H * AS, 0:W2 * AS].astype(np.float64) + 0.5) / AS
-alpha = np.clip(0.5 - sd_rr(xx, yy, 12.0, 3.0, 1403.0 - removed, 968.0, 42.0) * AS, 0, 1)
+alpha = np.clip(0.5 - sd_rr(xx, yy, 12.0, 3.0, 1403.0 - removed, BOX_BOTTOM, 42.0) * AS, 0, 1)
 
 # façade : la surface plate de la photo (où étaient logos, lettres et footswitchs effacés) est remplacée par un
 # aluminium brossé entièrement généré (tools/brushed_alu.py) : plus aucune tache de retouche. Les arêtes du boîtier
 # et la lèvre de la lunette restent celles de la photo, raccordées en fondu.
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from brushed_alu import brushed_alu
-d_box = sd_rr(xx, yy, 12.0, 3.0, 1403.0 - removed, 968.0, 42.0)
+d_box = sd_rr(xx, yy, 12.0, 3.0, 1403.0 - removed, BOX_BOTTOM, 42.0)
 d_bez = sd_rr(xx, yy, GX0 - 9.0, GY0 - 13.0, GX1 - removed + 9.0, GY1 + 13.0, GR + 12.0)
 face = smooth(-0.5, 0.8, -d_box) * smooth(1.0, 5.0, d_bez)
 # arête du boîtier : biseau arrondi de 9 unités, éclairé en haut à gauche (reflet fin et vif sur l'arête,

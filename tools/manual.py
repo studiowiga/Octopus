@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.3.6"
+VERSION = "1.3.7"
 TMP = os.path.join(os.path.dirname(os.path.abspath(OUT)), "manual_tmp")
 os.makedirs(TMP, exist_ok=True)
 
@@ -25,10 +25,10 @@ for n, f in (("Pop", "Poppins-Regular"), ("PopL", "Poppins-Light"), ("PopM", "Po
 
 ACC = colors.HexColor("#1E9BD0"); DARK = colors.HexColor("#1A1C22"); GREY = colors.HexColor("#646B76"); LIGHT = colors.HexColor("#EAF4FA")
 
-# ---------- capture annotée (repère 1267 x 981 du plugin) ----------
+# ---------- capture annotée (repère 1267 x 944 du plugin) ----------
 src = Image.open(os.path.join(SHOTS, "octopus_100pc.png")).convert("RGB")
-k = src.height / 981.0
-marks = [(1, 142.2, 101), (2, 283.6, 101), (3, 713.8, 101), (4, 911.1, 101), (5, 1055.6, 101), (6, 1143.0, 101), (7, 190.0, 223.9), (8, 634.5, 411.1), (9, 1161.3, 434.5), (10, 209.3, 688.8), (11, 487.5, 879), (12, 452, 806)]
+k = src.height / 944.0
+marks = [(1, 142.2, 101), (2, 283.6, 101), (3, 713.8, 101), (4, 911.1, 101), (5, 1055.6, 101), (6, 1143.0, 101), (7, 190.0, 223.9), (8, 634.5, 411.1), (9, 1161.3, 434.5), (10, 209.3, 688.8), (11, 487.5, 861), (12, 452, 797)]
 ann = src.copy(); dr = ImageDraw.Draw(ann)
 fnt = ImageFont.truetype(os.path.join(ROOT, "fonts", "Poppins-Bold.ttf"), 26)
 for n, x, y in marks:
@@ -40,7 +40,7 @@ annotated = os.path.join(TMP, "annotated.png"); ann.save(annotated)
 # gros plans de l'écran (vitre : 72, 109, 1125 x 660)
 def screen_crop(name, out):
     im = Image.open(os.path.join(SHOTS, name)).convert("RGB")
-    kk = im.height / 981.0
+    kk = im.height / 944.0
     im.crop((int(72 * kk), int(109 * kk), int(1197 * kk), int(769 * kk))).save(os.path.join(TMP, out))
     return os.path.join(TMP, out)
 scr_stomp = screen_crop ("octopus_stomp.png", "stomp.png")
