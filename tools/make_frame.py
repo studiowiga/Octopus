@@ -75,7 +75,7 @@ def erase_discs(img, centres, rad, y0, y1, shift):
     out = img.copy()
     out[y0:y1] = (img * (1 - w) + (low + fill) * w)[y0:y1]
     return out
-img = erase_discs(img, [(227.0, 884.0), (545.0, 884.0), (868.0, 883.0), (1187.0, 883.0)], 74.0, 790, 968, 150)
+img = img if True else erase_discs(img, [(227.0, 884.0), (545.0, 884.0), (868.0, 883.0), (1187.0, 883.0)], 74.0, 790, 968, 150)
 for cx in (226.5, 543.0, 864.5, 1183.0):                      # lettres A-D gravées (le plugin les dessine, allumées ou non)
     patch_rows(img, int(cx - 15), 792, int(cx + 15), 822, 70)
 
@@ -108,6 +108,32 @@ assert img.shape[1] == W2, img.shape
 big = cv2.resize(img, (W2 * AS, H * AS), interpolation=cv2.INTER_LANCZOS4)
 yy, xx = (np.mgrid[0:H * AS, 0:W2 * AS].astype(np.float64) + 0.5) / AS
 alpha = np.clip(0.5 - sd_rr(xx, yy, 12.0, 3.0, 1403.0 - removed, 968.0, 42.0) * AS, 0, 1)
+
+# façade : la surface plate de la photo (où étaient logos, lettres et footswitchs effacés) est remplacée par un
+# aluminium brossé entièrement généré (tools/brushed_alu.py) : plus aucune tache de retouche. Les arêtes du boîtier
+# et la lèvre de la lunette restent celles de la photo, raccordées en fondu.
+import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from brushed_alu import brushed_alu
+d_box = sd_rr(xx, yy, 12.0, 3.0, 1403.0 - removed, 968.0, 42.0)
+d_bez = sd_rr(xx, yy, GX0 - 9.0, GY0 - 13.0, GX1 - removed + 9.0, GY1 + 13.0, GR + 12.0)
+face = smooth(-0.5, 0.8, -d_box) * smooth(1.0, 5.0, d_bez)
+# arête du boîtier : biseau arrondi de 9 unités, éclairé en haut à gauche (reflet fin et vif sur l'arête,
+# flanc opposé plus sombre), comme un boîtier usiné
+hgt = 7.0 * smooth(0.0, 9.0, -d_box)
+gy_, gx_ = np.gradient(cv2.GaussianBlur(hgt, (0, 0), 0.8 * AS), 1.0 / AS)
+nrm = np.dstack([-gx_, -gy_, np.ones_like(hgt)]); nrm /= np.linalg.norm(nrm, axis=2, keepdims=True)
+Lv = np.array([-0.5, -0.62, 0.6]); Lv /= np.linalg.norm(Lv)
+Hv = Lv + np.array([0, 0, 1.0]); Hv /= np.linalg.norm(Hv)
+flat = Lv[2]
+ndl = np.clip((nrm * Lv).sum(2), 0, 1)
+spec = np.clip((nrm * Hv).sum(2), 0, 1) ** 60
+bevel_shade = (0.35 + 0.65 * ndl / flat)[..., None]
+bevel_spec = (spec * 210.0 * smooth(0, 1.5, -d_box))[..., None]
+ref = (face > 0.99) & (yy > 800) & (yy < 820)                      # bande sans objet sous l'écran : niveau de la photo
+level = float(np.median(big[ref].mean(axis=1)))
+alu = brushed_alu(H * AS, W2 * AS, px=AS, seed=5, level=level * 1.02)
+alu = alu * bevel_shade + bevel_spec * np.array([0.97, 1.0, 1.05])
+big = big * (1 - face[..., None]) + alu * face[..., None]
 out = Image.fromarray(np.dstack([np.clip(big, 0, 255), alpha * 255]).astype(np.uint8), "RGBA")
 
 # logo Studio Wiga net, à la place de celui de la photo (x 64..235, centré à y 53.5)

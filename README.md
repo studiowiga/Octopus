@@ -108,3 +108,4 @@ v1.3.2 : anneau lumineux calé sur le bord du chapeau de chaque footswitch (cent
 v1.3.3 : anneau lumineux qui suit la forme de chaque bouton (chapeau + flanc vu en perspective, contour relevé sur chaque footswitch).
 v1.3.4 : retour aux footswitchs inox des versions précédentes (vus de dessus, anneau lumineux dans la gorge autour du bouton) ; footswitchs de la photo effacés du boîtier.
 v1.3.5 : aluminium brossé du boîtier assombri (x 0,78).
+v1.3.6 : façade en aluminium brossé entièrement générée (tools/brushed_alu.py : stries de longueurs variées en fondu, rayures fines, grain, reflets anisotropes) : plus aucune tache de retouche ; arête du boîtier usinée avec reflet en haut à gauche ; lunette de l'écran de la photo.
