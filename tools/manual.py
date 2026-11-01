@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.3.9"
+VERSION = "1.4.0"
 TMP = os.path.join(os.path.dirname(os.path.abspath(OUT)), "manual_tmp")
 os.makedirs(TMP, exist_ok=True)
 
@@ -124,7 +124,7 @@ T = {
  more_t="Menus and details",
  more=[("Right-click a block", "<b>Bypass / Enable</b> - <b>Parameters on screen</b> - <b>Open / Close plug-in window</b> (the floating window of REAPER) - <b>Assign to footswitch (STOMP) A-D</b>: tick the footswitches that switch this block - <b>Process in parallel with previous</b> (REAPER 7 parallel FX: the block is fed with the same signal as the previous one, marked ||) - <b>Move</b>: left, right, to the start, to the end - <b>Insert an effect before / after</b>: opens ADD AN EFFECT at that place - <b>Remove</b>."),
        ("Right-click the screen", "On an empty part of the screen: <b>Add an effect</b>, <b>Save the chain...</b>, <b>Banks...</b>, the <b>MIDI</b> menu (learn, latching, reset) and <b>Plugin size</b>. Right-click outside the screen (on the pedal) gives the same MIDI and size menus."),
-       ("Header", "From left to right: the preset label (1A ... 16D, or -- for a chain that is not a saved preset), its name with <b>EDITED</b> when the chain differs from it, the <b>status line</b> (track name, last action, warnings such as a missing plug-in), the <b>BANK</b> arrows, <b>PRESET</b> and <b>STOMP</b>, <b>BANKS</b> and <b>SAVE</b>."),
+       ("Header", "From left to right: the preset label (1A ... 16D, or -- for a chain that is not a saved preset), its name with <b>EDITED</b> when the chain differs from it, the <b>status line</b> (track name, last action, warnings such as a missing plug-in), the <b>BANK</b> arrows, <b>PRESET</b> and <b>STOMP</b>, <b>SAVE</b> and <b>BANKS</b>."),
        ("Long chains", "Beyond 21 effects, the mouse wheel scrolls the rows; the rows shown appear at the bottom right (for example 1-3 / 4) with small arrows. When you drag a block near the top or bottom edge, the screen scrolls by itself."),
        ("Which chain is shown", "Octopus controls the chain it is inserted in: the track FX chain, or the record input FX chain if you insert it there. It finds itself in the chain with a token of its own (parameter <i>Octopus ID</i>), so you can rename it, move it or use several Octopus on different tracks. It never removes or moves itself."),
        ("Missing plug-ins", "If a preset contains a plug-in that is not installed on this computer, the status line names it and the other effects are loaded in their right place, in the right order.")],
@@ -138,12 +138,12 @@ T = {
        ("REAPER", "Options &gt; Preferences &gt; Plug-ins &gt; VST &gt; <b>Re-scan</b>. Octopus appears as <b>VST3: Octopus (Studio Wiga)</b>. Insert it on the track you want to control, ideally in first position. REAPER 6.37 or newer is needed; the list of installed plug-ins used by the ADD screen needs REAPER 7.")],
  ov_t="3. Overview",
  ov_rows=[["#", "Element", "Role"],
-   ["1", "Preset", "Preset currently loaded (1A ... 16D), in the colour of its footswitch, or -- for a live chain."],
+   ["1", "Preset", "Preset currently loaded (1A ... 16D), in its colour, or -- for a live chain. Click it to choose the colour of this preset."],
    ["2", "Name / status line", "Preset name (click it to rename the preset; EDITED when the chain no longer matches it); below: the track name, or the last action and messages."],
    ["3", "BANK", "Bank shown by the footswitches (arrows: previous / next bank)."],
    ["4", "PRESET / STOMP", "Mode of the footswitches."],
-   ["5", "BANKS", "Opens the banks panel (load, save, rename, copy, export, footswitch colours...)."],
-   ["6", "SAVE", "Save the current chain in a preset."],
+   ["5", "SAVE", "Save the current chain in a preset."],
+   ["6", "BANKS", "Opens the banks panel (load, save, rename, copy, export, footswitch colours...)."],
    ["7", "Block", "One effect of the track. Click: ON / OFF. Double-click: parameters. Drag: move. Right-click: menu."],
    ["8", "+ Add", "Adds an effect (list of the plug-ins installed in REAPER)."],
    ["9", "IN / OUT", "Signal flow of the track, from left to right, row after row."],
@@ -169,6 +169,7 @@ T = {
       "<b>SAVE</b>: saves the loaded preset, or <i>Save as...</i> a slot chosen by bank. An existing preset is never replaced without confirmation. You can also right-click a footswitch &gt; <i>Save the current chain in ...</i>.",
       "<b>Recall</b>: footswitch (PRESET mode), click on a footswitch cell, LOAD in the banks panel, double-click a preset card, or MIDI Program Change. <b>Fast switching</b>: when the preset uses the same plug-ins in the same order as the current chain, Octopus only reloads the blocks whose settings differ and simply switches the others ON / OFF: changing between presets of one rig is almost instant. Otherwise the whole chain is replaced (Octopus itself is never touched). A plug-in that is no longer installed is reported on the status line; the other effects are loaded in their right place.",
       "<b>Empty preset</b>: recalling a preset that has never been saved (footswitch, footswitch cell, LOAD...) gives an <b>empty screen as at start-up</b>: every effect of the chain is removed (Octopus stays), the preset label shows that slot and you can build a new chain, then SAVE it there. REAPER's undo brings the previous chain back.",
+      "<b>Preset colour</b>: click the preset label at the top left (1A...) and choose a colour (blue, cyan, green, lime, yellow, amber, orange, red, pink, purple, white) or <i>Footswitch colour (default)</i>. The colour belongs to that preset only: label, letter, light ring and footswitch cell take it whenever the preset is in the bank shown (PRESET mode). It is saved with the project and in .octobank files.",
       "<b>Rename</b>: click the preset name at the top of the screen, type the new name, Enter (Escape cancels). RENAME in the BANKS panel does the same for any preset.",
       "<b>EDITED</b> appears next to the preset name when the chain has changed since it was loaded or saved; pressing the footswitch of that preset again restores it.",
       "<b>BANKS panel</b>: the 16 banks on the left (dots = saved presets), the 4 presets of the selected bank on the right with <b>LOAD, SAVE, RENAME, COPY, PASTE, CLEAR</b>. <b>EXPORT...</b> writes all banks to an <b>.octobank</b> file, <b>IMPORT...</b> replaces the 64 presets with a file (to share banks between projects). <b>PROGRAM CHANGE = PRESETS</b> switches MIDI Program Change on or off. <b>FOOTSWITCH COLOURS</b>: COLOUR A to COLOUR D choose the colour of each footswitch in PRESET mode (letter and screen cell): blue, cyan, green, lime, yellow, amber, orange, red, pink, purple or white. The colours are saved with the project."],
@@ -225,7 +226,7 @@ T = {
  more_t="Menus et détails",
  more=[("Clic droit sur un bloc", "<b>Bypass / Enable</b> - <b>Parameters on screen</b> (paramètres à l'écran) - <b>Open / Close plug-in window</b> (fenêtre flottante de REAPER) - <b>Assign to footswitch (STOMP) A-D</b> : cochez les footswitchs qui basculent ce bloc - <b>Process in parallel with previous</b> (effets parallèles de REAPER 7 : le bloc reçoit le même signal que le précédent, repère ||) - <b>Move</b> : à gauche, à droite, au début, à la fin - <b>Insert an effect before / after</b> : ouvre ADD AN EFFECT à cet endroit - <b>Remove</b> (supprimer)."),
        ("Clic droit sur l'écran", "Sur une partie vide de l'écran : <b>Add an effect</b>, <b>Save the chain...</b>, <b>Banks...</b>, le menu <b>MIDI</b> (learn, accrochage, remise à zéro) et <b>Plugin size</b>. Un clic droit hors de l'écran (sur la pédale) donne les mêmes menus MIDI et taille."),
-       ("En-tête", "De gauche à droite : l'étiquette du preset (1A ... 16D, ou -- pour une chaîne qui n'est pas un preset enregistré), son nom avec <b>EDITED</b> quand la chaîne en diffère, la <b>ligne d'état</b> (nom de la piste, dernière action, avertissements comme un plugin manquant), les flèches <b>BANK</b>, <b>PRESET</b> et <b>STOMP</b>, <b>BANKS</b> et <b>SAVE</b>."),
+       ("En-tête", "De gauche à droite : l'étiquette du preset (1A ... 16D, ou -- pour une chaîne qui n'est pas un preset enregistré), son nom avec <b>EDITED</b> quand la chaîne en diffère, la <b>ligne d'état</b> (nom de la piste, dernière action, avertissements comme un plugin manquant), les flèches <b>BANK</b>, <b>PRESET</b> et <b>STOMP</b>, <b>SAVE</b> et <b>BANKS</b>."),
        ("Longues chaînes", "Au-delà de 21 effets, la molette fait défiler les rangées ; les rangées affichées s'indiquent en bas à droite (par exemple 1-3 / 4) avec de petites flèches. Quand vous glissez un bloc près du bord haut ou bas, l'écran défile tout seul."),
        ("Quelle chaîne est affichée", "Octopus pilote la chaîne dans laquelle il est inséré : la chaîne d'effets de la piste, ou la chaîne d'effets d'entrée (enregistrement) si vous l'y insérez. Il se retrouve dans la chaîne grâce à un jeton qui lui est propre (paramètre <i>Octopus ID</i>) : vous pouvez le renommer, le déplacer ou utiliser plusieurs Octopus sur des pistes différentes. Il ne se supprime ni ne se déplace jamais lui-même."),
        ("Plugins manquants", "Si un preset contient un plugin qui n'est pas installé sur cet ordinateur, la ligne d'état le nomme et les autres effets sont chargés à leur place, dans le bon ordre.")],
@@ -239,12 +240,12 @@ T = {
        ("REAPER", "Options &gt; Preferences &gt; Plug-ins &gt; VST &gt; <b>Re-scan</b>. Octopus apparaît sous le nom <b>VST3: Octopus (Studio Wiga)</b>. Insérez-le sur la piste à piloter, de préférence en première position. Il faut REAPER 6.37 ou plus récent ; la liste des plugins installés utilisée par l'écran d'ajout demande REAPER 7.")],
  ov_t="3. Vue d'ensemble",
  ov_rows=[["#", "Élément", "Rôle"],
-   ["1", "Preset", "Preset chargé (1A ... 16D), dans la couleur de son footswitch, ou -- pour une chaîne libre."],
+   ["1", "Preset", "Preset chargé (1A ... 16D), dans sa couleur, ou -- pour une chaîne libre. Cliquez dessus pour choisir la couleur de ce preset."],
    ["2", "Nom / ligne d'état", "Nom du preset (cliquez dessus pour le renommer ; EDITED quand la chaîne ne lui correspond plus) ; dessous : le nom de la piste, ou la dernière action et les messages."],
    ["3", "BANK", "Bank affichée sur les footswitchs (flèches : bank précédente / suivante)."],
    ["4", "PRESET / STOMP", "Mode des footswitchs."],
-   ["5", "BANKS", "Ouvre le panneau des banks (charger, enregistrer, renommer, copier, exporter, couleurs des footswitchs...)."],
-   ["6", "SAVE", "Enregistre la chaîne actuelle dans un preset."],
+   ["5", "SAVE", "Enregistre la chaîne actuelle dans un preset."],
+   ["6", "BANKS", "Ouvre le panneau des banks (charger, enregistrer, renommer, copier, exporter, couleurs des footswitchs...)."],
    ["7", "Bloc", "Un effet de la piste. Clic : ON / OFF. Double-clic : paramètres. Glisser : déplacer. Clic droit : menu."],
    ["8", "+ Add", "Ajoute un effet (liste des plugins installés dans REAPER)."],
    ["9", "IN / OUT", "Trajet du signal de la piste, de gauche à droite, rangée après rangée."],
@@ -270,6 +271,7 @@ T = {
       "<b>SAVE</b> : enregistre le preset chargé, ou <i>Save as...</i> dans un emplacement choisi par bank. Un preset existant n'est jamais remplacé sans confirmation. Vous pouvez aussi faire un clic droit sur un footswitch &gt; <i>Save the current chain in ...</i>.",
       "<b>Rappel</b> : footswitch (mode PRESET), clic sur une case de footswitch, LOAD dans le panneau des banks, double-clic sur une carte de preset, ou Program Change MIDI. <b>Changement rapide</b> : si le preset utilise les mêmes plugins dans le même ordre que la chaîne actuelle, Octopus ne recharge que les blocs dont les réglages diffèrent et se contente d'allumer ou couper les autres : passer d'un preset à l'autre d'un même rig est quasi instantané. Sinon toute la chaîne est remplacée (Octopus lui-même n'est jamais touché). Un plugin qui n'est plus installé est signalé sur la ligne d'état ; les autres effets sont chargés à leur place.",
       "<b>Preset vide</b> : rappeler un preset jamais enregistré (footswitch, case de footswitch, LOAD...) donne un <b>écran vide comme au démarrage</b> : tous les effets de la chaîne sont retirés (Octopus reste), l'étiquette affiche cet emplacement et vous pouvez construire une nouvelle chaîne puis l'y enregistrer avec SAVE. L'annulation de REAPER ramène la chaîne précédente.",
+      "<b>Couleur du preset</b> : cliquez sur l'étiquette du preset en haut à gauche (1A...) et choisissez une couleur (bleu, cyan, vert, vert clair, jaune, ambre, orange, rouge, rose, violet, blanc) ou <i>Footswitch colour (default)</i>. La couleur n'appartient qu'à ce preset : étiquette, lettre, anneau lumineux et case du footswitch la prennent quand ce preset est dans la bank affichée (mode PRESET). Elle est enregistrée avec le projet et dans les fichiers .octobank.",
       "<b>Renommer</b> : cliquez sur le nom du preset en haut de l'écran, tapez le nouveau nom, Entrée (Échap annule). RENAME dans le panneau BANKS fait la même chose pour n'importe quel preset.",
       "<b>EDITED</b> s'affiche à côté du nom quand la chaîne a changé depuis le chargement ou l'enregistrement du preset ; appuyer de nouveau sur le footswitch de ce preset le rétablit.",
       "<b>Panneau BANKS</b> : les 16 banks à gauche (points = presets enregistrés), les 4 presets de la bank choisie à droite avec <b>LOAD, SAVE, RENAME, COPY, PASTE, CLEAR</b>. <b>EXPORT...</b> écrit toutes les banks dans un fichier <b>.octobank</b>, <b>IMPORT...</b> remplace les 64 presets par ceux d'un fichier (pour partager des banks entre projets). <b>PROGRAM CHANGE = PRESETS</b> active ou coupe les Program Change MIDI. <b>FOOTSWITCH COLOURS</b> : COLOUR A à COLOUR D choisissent la couleur de chaque footswitch en mode PRESET (lettre et case de l'écran) : bleu, cyan, vert, vert clair, jaune, ambre, orange, rouge, rose, violet ou blanc. Les couleurs sont enregistrées avec le projet."],

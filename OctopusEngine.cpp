@@ -532,6 +532,8 @@ juce::ValueTree OctopusEngine::presetToTree (const Preset& p, int idx)
     t.setProperty ("idx", idx, nullptr);
     t.setProperty ("name", p.name, nullptr);
     t.setProperty ("self", p.selfPos, nullptr);
+    if (! p.saved) t.setProperty ("empty", true, nullptr);          // emplacement vide qui a seulement une couleur
+    if (p.colour != 0) t.setProperty ("colour", juce::String::toHexString ((int) p.colour), nullptr);
     for (int f = 0; f < kFs; ++f)
     {
         juce::StringArray s;
@@ -550,9 +552,10 @@ juce::ValueTree OctopusEngine::presetToTree (const Preset& p, int idx)
 OctopusEngine::Preset OctopusEngine::presetFromTree (const juce::ValueTree& t)
 {
     Preset p;
-    p.saved = true;
+    p.saved = ! (bool) t["empty"];
     p.name = t["name"].toString();
     p.selfPos = (int) t["self"];
+    if (t.hasProperty ("colour")) p.colour = (juce::uint32) t["colour"].toString().getHexValue64();
     for (int f = 0; f < kFs; ++f)
     {
         auto s = juce::StringArray::fromTokens (t["stomp" + juce::String (f)].toString(), ",", "");
@@ -568,7 +571,7 @@ juce::ValueTree OctopusEngine::banksTree() const
     juce::ValueTree t ("OCTOPUS_BANKS");
     t.setProperty ("version", 1, nullptr);
     for (int i = 0; i < kPresets; ++i)
-        if (presets[(size_t) i].saved) t.appendChild (presetToTree (presets[(size_t) i], i), nullptr);
+        if (presets[(size_t) i].saved || presets[(size_t) i].colour != 0) t.appendChild (presetToTree (presets[(size_t) i], i), nullptr);
     return t;
 }
 

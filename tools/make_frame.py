@@ -118,8 +118,21 @@ alpha = np.clip(0.5 - sd_rr(xx, yy, 12.0, 3.0, 1403.0 - removed, BOX_BOTTOM, 42.
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from brushed_alu import brushed_alu
 d_box = sd_rr(xx, yy, 12.0, 3.0, 1403.0 - removed, BOX_BOTTOM, 42.0)
-d_bez = sd_rr(xx, yy, GX0 - 9.0, GY0 - 13.0, GX1 - removed + 9.0, GY1 + 13.0, GR + 12.0)
-face = smooth(-0.5, 0.8, -d_box) * smooth(1.0, 5.0, d_bez)
+# lunette de l'écran : profil régulier tout autour (la photo avait un reflet granuleux et irrégulier à droite) :
+# d = distance au bord de la vitre ; fente sombre, bord mat en pente, fine gorge, petite lèvre claire, puis la façade
+d_g = sd_rr(xx, yy, GX0, GY0, GX1 - removed, GY1, GR)
+BEZ_OUT = 13.0
+face = smooth(-0.5, 0.8, -d_box) * smooth(BEZ_OUT - 1.0, BEZ_OUT + 0.6, d_g)
+def bezel_profile(d):
+    v = np.full_like(d, 8.0)
+    v = np.where(d > 0.8, 8.0 + 14.0 * smooth(0.8, 2.2, d), v)                     # sortie de la fente
+    v = np.where(d > 2.2, 22.0 + 4.0 * smooth(2.2, 9.0, d), v)                      # flanc mat, un peu plus clair vers l'extérieur
+    v = v - 13.0 * np.exp(-((d - 10.0) / 0.55) ** 2)                               # gorge
+    v = v + 30.0 * np.exp(-((d - 11.6) / 0.6) ** 2)                                # lèvre claire, régulière
+    return v
+bez_zone = smooth(-0.6, 0.0, d_g) * (1 - smooth(BEZ_OUT - 1.0, BEZ_OUT + 0.6, d_g))
+bz = bezel_profile(d_g)[..., None] * np.array([0.95, 0.98, 1.05])
+big = big * (1 - bez_zone[..., None]) + bz * bez_zone[..., None]
 # arête du boîtier : biseau arrondi de 9 unités, éclairé en haut à gauche (reflet fin et vif sur l'arête,
 # flanc opposé plus sombre), comme un boîtier usiné
 hgt = 7.0 * smooth(0.0, 9.0, -d_box)
@@ -134,7 +147,7 @@ bevel_shade = (0.35 + 0.65 * ndl / flat)[..., None]
 bevel_spec = (spec * 210.0 * smooth(0, 1.5, -d_box))[..., None]
 ref = (face > 0.99) & (yy > 800) & (yy < 820)                      # bande sans objet sous l'écran : niveau de la photo
 level = float(np.median(big[ref].mean(axis=1)))
-alu = brushed_alu(H * AS, W2 * AS, px=AS, seed=5, level=level * 1.02)
+alu = brushed_alu(H * AS, W2 * AS, px=AS, seed=5, level=level * 0.80)        # assombri (31/10, 2e fois)
 alu = alu * bevel_shade + bevel_spec * np.array([0.97, 1.0, 1.05])
 big = big * (1 - face[..., None]) + alu * face[..., None]
 out = Image.fromarray(np.dstack([np.clip(big, 0, 255), alpha * 255]).astype(np.uint8), "RGBA")

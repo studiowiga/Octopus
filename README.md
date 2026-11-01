@@ -27,7 +27,7 @@ la chaîne d'effets de la piste où il est inséré. Pédale sans jacks qui occu
 - **Banks / presets** : 16 banks x 4 presets (1A à 16D). Un preset garde la chaîne complète (plugins, ordre, réglages,
   ON / OFF, assignations STOMP), au format de REAPER. SAVE (jamais d'écrasement sans confirmation), BANKS (charger,
   enregistrer, renommer, copier / coller, effacer, exporter / importer un fichier `.octobank`, couleur de chaque footswitch A-D en mode PRESET). En-tête : PRESET, STOMP,
-  BANKS, SAVE.
+  SAVE, BANKS ; clic sur l'étiquette du preset (1A...) : couleur propre à ce preset.
 - **Rappel sans coupure inutile** : si le preset a la même suite de plugins que la chaîne actuelle, seuls les blocs dont les
   réglages diffèrent sont rechargés, les autres ne font que passer ON / OFF (changement quasi instantané). Sinon la chaîne est
   remplacée. Octopus n'est jamais recréé ni déplacé. Un plugin désinstallé est signalé, les autres sont placés correctement.
@@ -112,3 +112,4 @@ v1.3.6 : façade en aluminium brossé entièrement générée (tools/brushed_alu
 v1.3.7 : bas de la pédale raccourci (repère 1267 x 944, fenêtre 60 % = 993 x 740) ; lettres et footswitchs remontés.
 v1.3.8 : lettres A-D centrées entre l'écran et les footswitchs.
 v1.3.9 : lettres A-D alignées sur le centre de leur footswitch.
+v1.4.0 : couleur propre à chaque preset (clic sur l'étiquette en haut à gauche) ; en-tête PRESET, STOMP, SAVE, BANKS ; aluminium plus sombre ; cadre de l'écran redessiné, régulier tout autour (plus de grain à droite).

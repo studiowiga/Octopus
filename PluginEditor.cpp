@@ -801,8 +801,8 @@ private:
         v.push_back ({ { 660.0f, 19.0f, 34.0f, 36.0f }, bBankNext, CharPointer_UTF8 ("\xe2\x96\xb6") });
         v.push_back ({ { 706.0f, 19.0f, 84.0f, 36.0f }, bModePreset, "PRESET", eng.mode() == OctopusEngine::presetMode });
         v.push_back ({ { 798.0f, 19.0f, 84.0f, 36.0f }, bModeStomp, "STOMP", eng.mode() == OctopusEngine::stompMode });
-        v.push_back ({ { 892.0f, 19.0f, 78.0f, 36.0f }, bBanks, "BANKS", overlay == Overlay::banks });
-        v.push_back ({ { 978.0f, 19.0f, 72.0f, 36.0f }, bSave, "SAVE", false, eng.isReady() });
+        v.push_back ({ { 892.0f, 19.0f, 72.0f, 36.0f }, bSave, "SAVE", false, eng.isReady() });
+        v.push_back ({ { 972.0f, 19.0f, 78.0f, 36.0f }, bBanks, "BANKS", overlay == Overlay::banks });
         return v;
     }
 
@@ -956,7 +956,7 @@ private:
         const int cur = eng.current();
         const auto badge = S (Rectangle<float> (14.0f, 13.0f, 104.0f, 48.0f));
         // même couleur que le footswitch de ce preset (choisie dans BANKS > FOOTSWITCH COLOURS)
-        const auto badgeCol = cur >= 0 ? Colour (eng.fsColour (cur % OctopusEngine::kSlots)) : kScrPanel2;
+        const auto badgeCol = cur >= 0 ? Colour (eng.presetColour (cur)) : kScrPanel2;
         g.setColour (badgeCol);
         g.fillRoundedRectangle (badge, S (8.0f));
         g.setFont (font (tfBold, 32.0f));
@@ -1017,7 +1017,7 @@ private:
             const auto c = S (cell);
             const bool lit = eng.fsLit (f);
             const int kind = eng.fsKind (f);
-            const auto col = inPresetMode ? Colour (eng.fsColour (f)) : (kind >= 0 ? FxCat::colour (kind) : kDim);
+            const auto col = inPresetMode ? Colour (eng.presetColour (eng.bank() * OctopusEngine::kSlots + f)) : (kind >= 0 ? FxCat::colour (kind) : kDim);
             const bool hov = hoverFooter == f;
             g.setColour (lit ? col.withAlpha (0.16f) : (hov ? kScrPanel2.brighter (0.1f) : kScrPanel));
             g.fillRoundedRectangle (c, S (9.0f));
@@ -2079,6 +2079,7 @@ private:
             return;
         }
         if (headerNameRect().contains (p) && ! e.mods.isPopupMenu() && eng.isReady()) { startHeaderRename(); return; }
+        if (Rectangle<float> (14.0f, 13.0f, 104.0f, 48.0f).contains (p) && eng.current() >= 0) { presetColourMenu (eng.current()); return; }
 
         if (overlay == Overlay::browser)
         {
@@ -2335,6 +2336,31 @@ private:
     }
 
     // enregistrement : jamais d'écrasement silencieux d'un preset existant
+    static constexpr std::pair<const char*, juce::uint32> kPalette[] = {
+            { "Blue", OctopusEngine::kDefaultFsColour }, { "Cyan", 0xff3ce0e8 }, { "Green", 0xff45e070 }, { "Lime", 0xffb6e83a },
+            { "Yellow", 0xffffe23a }, { "Amber", 0xffffb547 }, { "Orange", 0xffff7a2e }, { "Red", 0xffff4040 },
+            { "Pink", 0xffff5fb4 }, { "Purple", 0xffb07aff }, { "White", 0xfff2f4f8 } };
+
+    // couleur d'un preset (clic sur l'étiquette 1A... en haut) : étiquette, lettre, anneau et case de son footswitch
+    void presetColourMenu (int idx)
+    {
+        PopupMenu m;
+        m.addSectionHeader ("Preset " + OctopusEngine::label (idx) + " colour");
+        const bool own = eng.hasOwnColour (idx);
+        m.addColouredItem (1, "Footswitch colour (default)", Colour (eng.fsColour (idx % OctopusEngine::kSlots)), true, ! own);
+        m.addSeparator();
+        int id = 10;
+        for (auto& c : kPalette) m.addColouredItem (id++, c.first, Colour (c.second), true, own && eng.presetColour (idx) == c.second);
+        SafePointer<PedalView> sp (this);
+        m.showMenuAsync (PopupMenu::Options(), [sp, idx] (int r)
+        {
+            if (sp == nullptr || r <= 0) return;
+            if (r == 1) sp->eng.setPresetColour (idx, 0);
+            else if (r >= 10 && r < 10 + (int) std::size (kPalette)) sp->eng.setPresetColour (idx, kPalette[r - 10].second);
+            sp->askRepaint (sp->getLocalBounds());
+        });
+    }
+
     // couleur d'un footswitch (lettre lumineuse et case de l'écran, en mode PRESET)
     void colourMenu (int f)
     {
@@ -2629,7 +2655,7 @@ private:
         for (int f = 0; f < 4; ++f)
         {
             const bool lit = eng.isReady() && eng.fsLit (f);
-            Colour col = Colour (eng.fsColour (f));
+            Colour col = Colour (eng.presetColour (eng.bank() * OctopusEngine::kSlots + f));
             if (eng.mode() == OctopusEngine::stompMode) { const int k = eng.fsKind (f); col = k >= 0 ? FxCat::colour (k) : col; }
             if (lit || ledLevel[f] < 0.01f) ledColour[f] = col;                     // pendant l'extinction, la couleur reste
             const float target = lit ? 1.0f : 0.0f;

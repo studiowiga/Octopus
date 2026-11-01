@@ -251,6 +251,16 @@ int main (int argc, char** argv)
         e.load (2);
         check (e.blocks().size() > 5 && e.current() == 2, "retour au preset 1C");
         shot ("octopus_badge_colour");
+        e.setPresetColour (2, 0xffb07aff);
+        e.setPresetColour (6, 0xffff4040);                    // 2C vide, avec seulement une couleur
+        auto tr = e.toTree();
+        e.setPresetColour (2, 0); e.setPresetColour (6, 0);
+        e.fromTree (tr);
+        check (e.presetColour (2) == 0xffb07aff && e.presetColour (6) == 0xffff4040 && ! e.preset (6).saved
+               && e.presetColour (3) == e.fsColour (3), "couleur propre d'un preset enregistrée et relue");
+        e.load (2);
+        shot ("octopus_preset_colour");
+        e.setPresetColour (2, 0); e.setPresetColour (6, 0);
     }
 
     // longue chaîne : défilement

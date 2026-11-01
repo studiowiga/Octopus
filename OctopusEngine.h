@@ -22,6 +22,7 @@ public:
         int selfPos = 0;                    // position d'Octopus parmi eux
         juce::Array<int> stomp[kFs];        // blocs (positions dans entries) commandés par chaque footswitch en mode STOMP
         bool saved = false;
+        juce::uint32 colour = 0;            // couleur du preset (0 = celle de son footswitch)
     };
 
     explicit OctopusEngine (ChainHost& host);
@@ -64,6 +65,15 @@ public:
     // couleur de chaque footswitch (lettre lumineuse et case de l'écran en mode PRESET)
     juce::uint32 fsColour (int fs) const { return fsCol[(size_t) juce::jlimit (0, kFs - 1, fs)]; }
     void setFsColour (int fs, juce::uint32 c) { fsCol[(size_t) juce::jlimit (0, kFs - 1, fs)] = c; changed(); }
+    // couleur d'un preset : la sienne si elle a été choisie, sinon celle de son footswitch
+    juce::uint32 presetColour (int idx) const
+    {
+        idx = juce::jlimit (0, kPresets - 1, idx);
+        const auto c = presets[(size_t) idx].colour;
+        return c != 0 ? c : fsColour (idx % kSlots);
+    }
+    bool hasOwnColour (int idx) const { return presets[(size_t) juce::jlimit (0, kPresets - 1, idx)].colour != 0; }
+    void setPresetColour (int idx, juce::uint32 c) { presets[(size_t) juce::jlimit (0, kPresets - 1, idx)].colour = c; changed(); }
     static constexpr juce::uint32 kDefaultFsColour = 0xff6fc8ff;
 
     bool isAssigned (int fs, const juce::String& guid) const { return stompGuids[fs].contains (guid); }
